@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Belle Nails | Nail Studio Bogotá</title>
+
+  <style>
+    :root {
+      --cream: #fcf8f5;
+      --pink: #c67b96;
+      --pink-dark: #b76884;
+      --pink-light: #f2dfe5;
+      --text: #2f1a1f;
+      --muted: #876d76;
+      --line: #ead8dd;
+      --white: #ffffff;
+      --green: #5c9b78;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: var(--cream);
+      color: var(--text);
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    button,
+    input,
+    select {
+      font-family: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+
+    /* =========================
+       NAVBAR
+    ========================== */
+
+    .navbar {
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 7%;
+      background: var(--cream);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .brand {
+      font-family: Georgia, serif;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .star {
+      color: var(--pink);
+      font-size: 22px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      font-size: 13px;
+      color: #745d66;
+    }
+
+    .nav-links a:hover {
+      color: var(--pink);
+    }
+
+    .reserve-btn {
+      border: none;
+      background: var(--pink);
+      color: white;
+      border-radius: 25px;
+      padding: 11px 22px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .reserve-btn:hover {
+      background: var(--pink-dark);
+    }
+
+
+    /* =========================
+       HERO
+    ========================== */
+
+    .hero {
+      min-height: 520px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      padding: 40px 7% 50px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hero-copy {
+      padding-top: 15px;
+    }
+
+    .eyebrow {
+      color: var(--pink);
+      font-size: 11px;
+      letter-spacing: 3px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: Georgia, serif;
+      font-size: 55px;
+      line-height: 1.05;
+      margin-bottom: 20px;
+    }
+
+    h1 em {
+      color: var(--pink);
+      font-style: italic;
+    }
+
+    .intro {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.8;
+      margin-bottom: 30px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 45px;
+    }
+
+    .primary,
+    .secondary {
+      border-radius: 25px;
+      padding: 14px 25px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .primary {
+      border: 1px solid var(--pink);
+      background: var(--pink);
+      color: white;
+    }
+
+    .primary:hover {
+      background: var(--pink-dark);
+    }
+
+    .secondary {
+      border: 1px solid var(--pink);
+      background: transparent;
+      color: var(--pink-dark);
+    }
+
+    .secondary:hover {
+      background: var(--pink-light);
+    }
+
+    .stats {
+      display: flex;
+      gap: 45px;
+    }
+
+    .stat strong {
+      display: block;
+      font-family: Georgia, serif;
+      font-size: 21px;
+    }
+
+    .stat span {
+      display: block;
+      color: #806872;
+      font-size: 10px;
+      margin-top: 4px;
+    }
+
+
+    /* =========================
+       IMAGEN
+    ========================== */
+
+    .hero-visual {
+      position: relative;
+    }
+
+    .photo-frame {
+      width: 100%;
+      height: 430px;
+      background: var(--pink-light);
+      border-radius: 0 0 30px 30px;
+      padding-bottom: 20px;
+      box-shadow: 10px 20px 0 rgba(238, 207, 216, 0.8);
+    }
+
+    .photo {
+      width: 100%;
+      height: 410px;
+      object-fit: cover;
+      border-radius: 0 0 28px 28px;
+      display: block;
+    }
+
+    .availability {
+      position: absolute;
+      left: -10px;
+      bottom: 10px;
+      background: white;
+      border-radius: 15px;
+      padding: 13px 17px;
+      box-shadow: 0 10px 22px rgba(75, 39, 51, 0.15);
+    }
+
+    .availability small {
+      display: block;
+      color: #a07f89;
+      font-size: 9px;
+      margin-bottom: 4px;
+    }
+
+    .availability strong {
+      font-size: 11px;
+    }
+
+
+    /* =========================
+       SERVICIOS
+    ========================== */
+
+    .services {
+      padding: 80px 7%;
+      background: white;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 45px;
+    }
+
+    .section-header span {
+      color: var(--pink);
+      font-size: 11px;
+      letter-spacing: 3px;
+    }
+
+    .section-header h2 {
+      font-family: Georgia, serif;
+      font-size: 40px;
+      margin-top: 10px;
+      margin-bottom: 12px;
+    }
+
+    .section-header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 25px;
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    .service-card {
+      background: var(--cream);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .service-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 25px rgba(80, 40, 50, 0.10);
+    }
+
+    .service-image {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .service-content {
+      padding: 22px;
+    }
+
+    .service-content h3 {
+      font-family: Georgia, serif;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .service-description {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      min-height: 40px;
+    }
+
+    .service-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 20px 0;
+    }
+
+    .price {
+      color: var(--pink-dark);
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .duration {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .service-button {
+      width: 100%;
+      border: 1px solid var(--pink);
+      background: var(--pink);
+      color: white;
+      padding: 12px;
+      border-radius: 22px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .service-button:hover {
+      background: var(--pink-dark);
+    }
+
+
+    /* =========================
+       AGENDAR CITA
+    ========================== */
+
+    .booking {
+      padding: 80px 7%;
+      background: var(--cream);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .booking-container {
+      max-width: 850px;
+      margin: auto;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 25px;
+      padding: 40px;
+      box-shadow: 0 15px 35px rgba(80, 40, 50, 0.08);
+    }
+
+    .booking-header {
+      text-align: center;
+      margin-bottom: 35px;
+    }
+
+    .booking-header span {
+      color: var(--pink);
+      font-size: 11px;
+      letter-spacing: 3px;
+    }
+
+    .booking-header h2 {
+      font-family: Georgia, serif;
+      font-size: 38px;
+      margin: 10px 0;
+    }
+
+    .booking-header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 22px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: bold;
+      color: #5e4850;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      font-size: 13px;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px var(--pink-light);
+    }
+
+    .confirm-button {
+      width: 100%;
+      margin-top: 28px;
+      border: none;
+      background: var(--pink);
+      color: white;
+      padding: 15px;
+      border-radius: 25px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .confirm-button:hover {
+      background: var(--pink-dark);
+    }
+
+
+    /* =========================
+       CONFIRMACIÓN
+    ========================== */
+
+    .confirmation {
+      display: none;
+      padding: 80px 7%;
+      background: white;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .confirmation-card {
+      max-width: 600px;
+      margin: auto;
+      text-align: center;
+      background: var(--cream);
+      border: 1px solid var(--line);
+      border-radius: 25px;
+      padding: 45px;
+    }
+
+    .success-icon {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: #e4f3ea;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 32px;
+    }
+
+    .confirmation-card h2 {
+      font-family: Georgia, serif;
+      font-size: 35px;
+      margin-bottom: 12px;
+    }
+
+    .confirmation-card > p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 25px;
+    }
+
+    .appointment-summary {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: left;
+      margin-bottom: 25px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #f1e5e8;
+      font-size: 13px;
+    }
+
+    .summary-row:last-child {
+      border-bottom: none;
+    }
+
+    .summary-row span:first-child {
+      color: var(--muted);
+    }
+
+    .summary-row span:last-child {
+      font-weight: bold;
+    }
+
+    .new-appointment {
+      border: none;
+      background: var(--pink);
+      color: white;
+      border-radius: 25px;
+      padding: 13px 25px;
+      font-weight: bold;
+    }
+
+
+    /* =========================
+       CONTACTO / FOOTER
+    ========================== */
+
+    footer {
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 7%;
+      font-size: 10px;
+      color: #7f6971;
+    }
+
+    .footer-brand {
+      font-family: Georgia, serif;
+      font-size: 14px;
+    }
+
+    .footer-brand span {
+      color: var(--pink);
+    }
+
+    footer nav {
+      display: flex;
+      gap: 25px;
+    }
+
+    footer nav a:hover {
+      color: var(--pink);
+    }
+
+
+    /* =========================
+       CELULAR
+    ========================== */
+
+    @media (max-width: 800px) {
+
+      .navbar {
+        padding: 15px 6%;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .nav-links {
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 35px 6%;
+      }
+
+      h1 {
+        font-size: 42px;
+      }
+
+      .photo-frame {
+        height: 350px;
+      }
+
+      .photo {
+        height: 330px;
+      }
+
+      .services-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        gap: 25px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-group.full {
+        grid-column: auto;
+      }
+
+      .booking-container {
+        padding: 25px;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+
+      footer nav {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+
+
+<body>
+
+
+  <!-- =========================
+       MENÚ
+  ========================== -->
+
+  <header class="navbar">
+
+    <a href="#inicio" class="brand">
+      <span class="star">✦</span>
+      Belle Nails
+    </a>
+
+    <nav class="nav-links">
+
+      <a href="#inicio">
+        Inicio
+      </a>
+
+      <a href="#servicios">
+        Servicios
+      </a>
+
+      <a href="#agendar">
+        Agendar cita
+      </a>
+
+      <a href="#contacto">
+        Contacto
+      </a>
+
+      <button
+        class="reserve-btn"
+        onclick="irAAgendar()"
+      >
+        Reservar
+      </button>
+
+    </nav>
+
+  </header>
+
+
+  <main>
+
+
+    <!-- =========================
+         INICIO
+    ========================== -->
+
+    <section class="hero" id="inicio">
+
+      <div class="hero-copy">
+
+        <div class="eyebrow">
+          NAIL STUDIO · BOGOTÁ
+        </div>
+
+        <h1>
+          Uñas que
+          <em>cuentan</em>
+          <br>
+          tu historia
+        </h1>
+
+        <p class="intro">
+
+          Manicure profesional con atención personalizada.
+          <br>
+
+          Agenda tu cita en minutos y luce unas manos
+          <br>
+
+          impecables.
+
+        </p>
+
+        <div class="actions">
+
+          <button
+            class="primary"
+            onclick="irAAgendar()"
+          >
+            Agendar cita
+          </button>
+
+          <button
+            class="secondary"
+            onclick="irAServicios()"
+          >
+            Ver servicios
+          </button>
+
+        </div>
+
+
+        <div class="stats">
+
+          <div class="stat">
+            <strong>500+</strong>
+            <span>Clientes felices</span>
+          </div>
+
+          <div class="stat">
+            <strong>5★</strong>
+            <span>Calificación</span>
+          </div>
+
+          <div class="stat">
+            <strong>3 años</strong>
+            <span>De experiencia</span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="hero-visual">
+
+        <div class="photo-frame">
+
+          <img
+            class="photo"
+            src="hero-manicure.jpg"
+            alt="Manicure Belle Nails"
+          >
+
+        </div>
+
+        <div class="availability">
+
+          <small>
+            Próxima disponible
+          </small>
+
+          <strong>
+            Hoy · 3:30 PM
+          </strong>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         SERVICIOS
+    ========================== -->
+
+    <section
+      class="services"
+      id="servicios"
+    >
+
+      <div class="section-header">
+
+        <span>
+          NUESTROS SERVICIOS
+        </span>
+
+        <h2>
+          Elige tu estilo
+        </h2>
+
+        <p>
+          Encuentra el servicio perfecto para tus manos.
+        </p>
+
+      </div>
+
+
+      <div class="services-grid">
+
+
+        <!-- MANICURE -->
+
+        <article class="service-card">
+
+          <img
+            src="hero-manicure.jpg"
+            alt="Manicure tradicional"
+            class="service-image"
+          >
+
+          <div class="service-content">
+
+            <h3>
+              Manicure tradicional
+            </h3>
+
+            <p class="service-description">
+              Limpieza, cuidado de cutículas,
+              limado y esmaltado tradicional.
+            </p>
+
+            <div class="service-info">
+
+              <span class="price">
+                $25.000
+              </span>
+
+              <span class="duration">
+                ⏱ 45 min
+              </span>
+
+            </div>
+
+            <button
+              class="service-button"
+              onclick="seleccionarServicio('Manicure tradicional')"
+            >
+              Agendar
+            </button>
+
+          </div>
+
+        </article>
+
+
+        <!-- SEMIPERMANENTE -->
+
+        <article class="service-card">
+
+          <img
+            src="hero-manicure.jpg"
+            alt="Manicure semipermanente"
+            class="service-image"
+          >
+
+          <div class="service-content">
+
+            <h3>
+              Semipermanente
+            </h3>
+
+            <p class="service-description">
+              Esmaltado semipermanente con
+              acabado brillante y duradero.
+            </p>
+
+            <div class="service-info">
+
+              <span class="price">
+                $45.000
+              </span>
+
+              <span class="duration">
+                ⏱ 60 min
+              </span>
+
+            </div>
+
+            <button
+              class="service-button"
+              onclick="seleccionarServicio('Manicure semipermanente')"
+            >
+              Agendar
+            </button>
+
+          </div>
+
+        </article>
+
+
+        <!-- GEL -->
+
+        <article class="service-card">
+
+          <img
+            src="hero-manicure.jpg"
+            alt="Uñas en gel"
+            class="service-image"
+          >
+
+          <div class="service-content">
+
+            <h3>
+              Uñas en gel
+            </h3>
+
+            <p class="service-description">
+              Extensión y construcción en gel
+              para unas uñas elegantes.
+            </p>
+
+            <div class="service-info">
+
+              <span class="price">
+                $70.000
+              </span>
+
+              <span class="duration">
+                ⏱ 90 min
+              </span>
+
+            </div>
+
+            <button
+              class="service-button"
+              onclick="seleccionarServicio('Uñas en gel')"
+            >
+              Agendar
+            </button>
+
+          </div>
+
+        </article>
+
+
+        <!-- ACRÍLICAS -->
+
+        <article class="service-card">
+
+          <img
+            src="hero-manicure.jpg"
+            alt="Uñas acrílicas"
+            class="service-image"
+          >
+
+          <div class="service-content">
+
+            <h3>
+              Uñas acrílicas
+            </h3>
+
+            <p class="service-description">
+              Uñas resistentes y personalizadas
+              con el diseño que prefieras.
+            </p>
+
+            <div class="service-info">
+
+              <span class="price">
+                $80.000
+              </span>
+
+              <span class="duration">
+                ⏱ 120 min
+              </span>
+
+            </div>
+
+            <button
+              class="service-button"
+              onclick="seleccionarServicio('Uñas acrílicas')"
+            >
+              Agendar
+            </button>
+
+          </div>
+
+        </article>
+
+
+        <!-- PEDICURE -->
+
+        <article class="service-card">
+
+          <img
+            src="hero-manicure.jpg"
+            alt="Pedicure"
+            class="service-image"
+          >
+
+          <div class="service-content">
+
+            <h3>
+              Pedicure
+            </h3>
+
+            <p class="service-description">
+              Cuidado completo de pies,
+              uñas y esmaltado.
+            </p>
+
+            <div class="service-info">
+
+              <span class="price">
+                $40.000
+              </span>
+
+              <span class="duration">
+                ⏱ 60 min
+              </span>
+
+            </div>
+
+            <button
+              class="service-button"
+              onclick="seleccionarServicio('Pedicure')"
+            >
+              Agendar
+            </button>
+
+          </div>
+
+        </article>
+
+
+        <!-- DISEÑO -->
+
+        <article class="service-card">
+
+          <img
+            src="hero-manicure.jpg"
+            alt="Diseño personalizado"
+            class="service-image"
+          >
+
+          <div class="service-content">
+
+            <h3>
+              Diseño personalizado
+            </h3>
+
+            <p class="service-description">
+              Diseños especiales, decoración
+              y detalles personalizados.
+            </p>
+
+            <div class="service-info">
+
+              <span class="price">
+                Desde $15.000
+              </span>
+
+              <span class="duration">
+                ⏱ 30 min
+              </span>
+
+            </div>
+
+            <button
+              class="service-button"
+              onclick="seleccionarServicio('Diseño personalizado')"
+            >
+              Agendar
+            </button>
+
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         FORMULARIO DE CITA
+    ========================== -->
+
+    <section
+      class="booking"
+      id="agendar"
+    >
+
+      <div class="booking-container">
+
+        <div class="booking-header">
+
+          <span>
+            RESERVA TU CITA
+          </span>
+
+          <h2>
+            Agenda tu momento
+          </h2>
+
+          <p>
+            Completa los datos y reserva tu cita en Belle Nails.
+          </p>
+
+        </div>
+
+
+        <form id="bookingForm">
+
+
+          <div class="form-grid">
+
+
+            <!-- SERVICIO -->
+
+            <div class="form-group full">
+
+              <label for="service">
+                Servicio
+              </label>
+
+              <select
+                id="service"
+                required
+              >
+
+                <option value="">
+                  Selecciona un servicio
+                </option>
+
+                <option value="Manicure tradicional">
+                  Manicure tradicional - $25.000
+                </option>
+
+                <option value="Manicure semipermanente">
+                  Manicure semipermanente - $45.000
+                </option>
+
+                <option value="Uñas en gel">
+                  Uñas en gel - $70.000
+                </option>
+
+                <option value="Uñas acrílicas">
+                  Uñas acrílicas - $80.000
+                </option>
+
+                <option value="Pedicure">
+                  Pedicure - $40.000
+                </option>
+
+                <option value="Diseño personalizado">
+                  Diseño personalizado - Desde $15.000
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- FECHA -->
+
+            <div class="form-group">
+
+              <label for="date">
+                Fecha
+              </label>
+
+              <input
+                type="date"
+                id="date"
+                required
+              >
+
+            </div>
+
+
+            <!-- HORA -->
+
+            <div class="form-group">
+
+              <label for="time">
+                Hora
+              </label>
+
+              <select
+                id="time"
+                required
+              >
+
+                <option value="">
+                  Selecciona una hora
+                </option>
+
+                <option value="9:00 AM">
+                  9:00 AM
+                </option>
+
+                <option value="10:00 AM">
+                  10:00 AM
+                </option>
+
+                <option value="11:00 AM">
+                  11:00 AM
+                </option>
+
+                <option value="1:00 PM">
+                  1:00 PM
+                </option>
+
+                <option value="2:00 PM">
+                  2:00 PM
+                </option>
+
+                <option value="3:00 PM">
+                  3:00 PM
+                </option>
+
+                <option value="3:30 PM">
+                  3:30 PM
+                </option>
+
+                <option value="4:30 PM">
+                  4:30 PM
+                </option>
+
+                <option value="5:30 PM">
+                  5:30 PM
+                </option>
+
+                <option value="6:30 PM">
+                  6:30 PM
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- NOMBRE -->
+
+            <div class="form-group">
+
+              <label for="name">
+                Nombre completo
+              </label>
+
+              <input
+                type="text"
+                id="name"
+                placeholder="Ej. María López"
+                required
+              >
+
+            </div>
+
+
+            <!-- TELÉFONO -->
+
+            <div class="form-group">
+
+              <label for="phone">
+                Número de teléfono
+              </label>
+
+              <input
+                type="tel"
+                id="phone"
+                placeholder="Ej. 300 123 4567"
+                required
+              >
+
+            </div>
+
+
+            <!-- EMAIL -->
+
+            <div class="form-group full">
+
+              <label for="email">
+                Correo electrónico (opcional)
+              </label>
+
+              <input
+                type="email"
+                id="email"
+                placeholder="Ej. maria@gmail.com"
+              >
+
+            </div>
+
+
+          </div>
+
+
+          <button
+            type="submit"
+            class="confirm-button"
+          >
+            Confirmar cita
+          </button>
+
+
+        </form>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- =========================
+         CONFIRMACIÓN
+    ========================== -->
+
+    <section
+      class="confirmation"
+      id="confirmation"
+    >
+
+      <div class="confirmation-card">
+
+        <div class="success-icon">
+          ✓
+        </div>
+
+        <h2>
+          ¡Cita agendada!
+        </h2>
+
+        <p>
+          Tu cita ha sido registrada correctamente.
+        </p>
+
+
+        <div class="appointment-summary">
+
+
+          <div class="summary-row">
+
+            <span>
+              Cliente
+            </span>
+
+            <span id="summaryName">
+              -
+            </span>
+
+          </div>
+
+
+          <div class="summary-row">
+
+            <span>
+              Servicio
+            </span>
+
+            <span id="summaryService">
+              -
+            </span>
+
+          </div>
+
+
+          <div class="summary-row">
+
+            <span>
+              Fecha
+            </span>
+
+            <span id="summaryDate">
+              -
+            </span>
+
+          </div>
+
+
+          <div class="summary-row">
+
+            <span>
+              Hora
+            </span>
+
+            <span id="summaryTime">
+              -
+            </span>
+
+          </div>
+
+
+          <div class="summary-row">
+
+            <span>
+              Teléfono
+            </span>
+
+            <span id="summaryPhone">
+              -
+            </span>
+
+          </div>
+
+
+        </div>
+
+
+        <button
+          class="new-appointment"
+          onclick="nuevaCita()"
+        >
+          Agendar otra cita
+        </button>
+
+      </div>
+
+    </section>
+
+
+  </main>
+
+
+
+  <!-- =========================
+       FOOTER
+  ========================== -->
+
+  <footer id="contacto">
+
+    <div class="footer-brand">
+
+      <span>✦</span>
+      Belle Nails
+
+    </div>
+
+
+    <div>
+      © 2026 Belle Nails ·
+      Todos los derechos reservados
+    </div>
+
+
+    <nav>
+
+      <a href="#inicio">
+        Inicio
+      </a>
+
+      <a href="#servicios">
+        Servicios
+      </a>
+
+      <a href="#agendar">
+        Agendar
+      </a>
+
+      <a href="#contacto">
+        Contacto
+      </a>
+
+    </nav>
+
+  </footer>
+
+
+
+  <!-- =========================
+       JAVASCRIPT
+  ========================== -->
+
+  <script>
+
+
+    /*
+      IR A SERVICIOS
+    */
+
+    function irAServicios() {
+
+      document
+        .getElementById("servicios")
+        .scrollIntoView({
+          behavior: "smooth"
+        });
+
+    }
+
+
+
+    /*
+      IR AL FORMULARIO
+    */
+
+    function irAAgendar() {
+
+      document
+        .getElementById("agendar")
+        .scrollIntoView({
+          behavior: "smooth"
+        });
+
+    }
+
+
+
+    /*
+      SELECCIONAR SERVICIO
+    */
+
+    function seleccionarServicio(servicio) {
+
+      const select =
+        document.getElementById("service");
+
+      select.value = servicio;
+
+      irAAgendar();
+
+    }
+
+
+
+    /*
+/*
+==========================================
+CONFIRMAR CITA Y GUARDARLA
+==========================================
+*/
+
+document
+  .getElementById("bookingForm")
+  .addEventListener("submit", function(event) {
+
+    event.preventDefault();
+
+    const name =
+      document.getElementById("name").value;
+
+    const phone =
+      document.getElementById("phone").value;
+
+    const email =
+      document.getElementById("email").value;
+
+    const service =
+      document.getElementById("service").value;
+
+    const date =
+      document.getElementById("date").value;
+
+    const time =
+      document.getElementById("time").value;
+
+
+    /*
+    Crear objeto de la cita
+    */
+
+    const nuevaCita = {
+
+      name: name,
+
+      phone: phone,
+
+      email: email,
+
+      service: service,
+
+      date: date,
+
+      time: time
+
+    };
+
+
+    /*
+    Obtener las citas que ya existen
+    */
+
+    let citas =
+      JSON.parse(
+        localStorage.getItem("belleNailsCitas")
+      ) || [];
+
+
+    /*
+    Agregar la nueva cita
+    */
+
+    citas.push(nuevaCita);
+
+
+    /*
+    Guardar todas las citas
+    */
+
+    localStorage.setItem(
+      "belleNailsCitas",
+      JSON.stringify(citas)
+    );
+
+
+    /*
+    Mostrar información
+    en la confirmación
+    */
+
+    document.getElementById("summaryName")
+      .textContent = name;
+
+    document.getElementById("summaryPhone")
+      .textContent = phone;
+
+    document.getElementById("summaryService")
+      .textContent = service;
+
+    document.getElementById("summaryTime")
+      .textContent = time;
+
+
+    /*
+    Convertir fecha
+    */
+
+    const dateObject =
+      new Date(date + "T00:00:00");
+
+    const formattedDate =
+      dateObject.toLocaleDateString("es-CO");
+
+
+    document.getElementById("summaryDate")
+      .textContent = formattedDate;
+
+
+    /*
+    Mostrar confirmación
+    */
+
+    const confirmation =
+      document.getElementById("confirmation");
+
+    confirmation.style.display = "block";
+
+
+    /*
+    Ir a confirmación
+    */
+
+    confirmation.scrollIntoView({
+      behavior: "smooth"
+    });
+
+});
+    function nuevaCita() {
+
+      document
+        .getElementById("bookingForm")
+        .reset();
+
+
+      document
+        .getElementById("confirmation")
+        .style.display = "none";
+
+
+      irAAgendar();
+
+    }
+
+
+  </script>
+
+
+</body>
+</html>
