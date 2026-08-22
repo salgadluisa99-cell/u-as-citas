@@ -1695,7 +1695,26 @@ document
 
 
   </script>
+<!-- SUPABASE -->
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+    const SUPABASE_URL =
+        "sb_publishable_Af4a0ZPAYatxk6_7-KLbIQ_j287UnF9";
+
+    const SUPABASE_PUBLISHABLE_KEY =
+        "PEGA_AQUI_TU_PUBLISHABLE_KEY";
+
+
+    const supabaseClient =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY
+        );
+
+</script>
 
 </body>
 </html>
