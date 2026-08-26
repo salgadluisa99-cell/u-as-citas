@@ -1554,7 +1554,7 @@ CONFIRMAR CITA Y GUARDARLA
 
 document
   .getElementById("bookingForm")
-  .addEventListener("submit", function(event) {
+  .addEventListener("submit", async function(event) {
 
     event.preventDefault();
 
@@ -1597,39 +1597,6 @@ document
 
     };
 
-
-    /*
-    Obtener las citas que ya existen
-    */
-
-    let citas =
-      JSON.parse(
-        localStorage.getItem("belleNailsCitas")
-      ) || [];
-
-
-    /*
-    Agregar la nueva cita
-    */
-
-    citas.push(nuevaCita);
-
-
-    /*
-    Guardar todas las citas
-    */
-
-    localStorage.setItem(
-      "belleNailsCitas",
-      JSON.stringify(citas)
-    );
-
-
-    /*
-    Mostrar información
-    en la confirmación
-    */
-
     document.getElementById("summaryName")
       .textContent = name;
 
@@ -1658,6 +1625,58 @@ document
       .textContent = formattedDate;
 
 
+    /*
+==========================================
+GUARDAR CITA EN SUPABASE
+==========================================
+*/
+
+const { data, error } = await supabaseClient
+  .from("citas")
+  .insert([
+    {
+      nombre: name,
+      telefono: phone,
+      email: email,
+      servicio: service,
+      fecha: date,
+      hora: time,
+      estado: "Confirmada"
+    }
+  ]);
+
+
+/*
+==========================================
+COMPROBAR SI HUBO ERROR
+==========================================
+*/
+
+if (error) {
+
+  console.error(
+    "Error al guardar la cita:",
+    error
+  );
+
+  alert(
+    "No se pudo guardar la cita. Intenta nuevamente."
+  );
+
+  return;
+}
+
+
+/*
+==========================================
+CITA GUARDADA CORRECTAMENTE
+==========================================
+*/
+
+console.log(
+  "Cita guardada correctamente:",
+  data
+);
     /*
     Mostrar confirmación
     */
@@ -1693,9 +1712,27 @@ document
 
     }
 
-
   </script>
+<!-- SUPABASE -->
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+    const SUPABASE_URL =
+        "https://otvxhswskxyjpygrbdnz.supabase.co";
+
+    const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_Af4a0ZPAYatxk6_7-KLbIQ_j287UnF9";
+
+
+    const supabaseClient =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY
+        );
+
+</script>
 
 </body>
 </html>
