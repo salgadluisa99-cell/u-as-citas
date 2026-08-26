@@ -1542,10 +1542,6 @@
       irAAgendar();
 
     }
-
-
-
-    /*
 /*
 ==========================================
 CONFIRMAR CITA Y GUARDARLA
@@ -1632,18 +1628,36 @@ GUARDAR CITA EN SUPABASE
 */
 
 const { data, error } = await supabaseClient
-  .from("citas")
-  .insert([
-    {
-      nombre: name,
-      telefono: phone,
-      email: email,
-      servicio: service,
-      fecha: date,
-      hora: time,
-      estado: "Confirmada"
-    }
-  ]);
+    .from("citas")
+    .insert([
+        {
+            nombre: name,
+            telefono: phone,
+            email: email || null,
+            servicio: service,
+            fecha: date,
+            hora: time,
+            estado: "Confirmada"
+        }
+    ])
+    .select();
+
+if (error) {
+
+    console.error("ERROR COMPLETO DE SUPABASE:", error);
+
+    alert(
+        "Error al guardar la cita:\n\n" +
+        error.message
+    );
+
+    return;
+}
+
+console.log(
+    "CITA GUARDADA EN SUPABASE:",
+    data
+);
 
 
 /*
@@ -1714,6 +1728,25 @@ console.log(
 
   </script>
 
-
 </body>
+<!-- SUPABASE -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+    const SUPABASE_URL =
+        "https://otvxhswskxyjpygrbdnz.supabase.co";
+
+    const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_Af4a0ZPAYatxk6_7-KLbIQ_j287UnF9";
+
+
+    const supabaseClient =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY
+        );
+
+</script>
 </html>
