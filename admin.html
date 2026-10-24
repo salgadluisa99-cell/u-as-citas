@@ -39,6 +39,7 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 .empty{text-align:center;padding:60px 10px;color:var(--mute)}.empty div{font-size:3rem}
 .lb{position:fixed;inset:0;background:rgba(20,8,14,.88);display:none;place-items:center;z-index:20;padding:20px}.lb.on{display:grid}.lb img{max-width:100%;max-height:92vh;border-radius:14px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 22px;border-radius:24px;font-size:.88rem;opacity:0;pointer-events:none;transition:.3s;z-index:30;max-width:90%;text-align:center}.toast.on{opacity:1}
+.warn{background:#fff0d6;color:#7a5410;border:1px solid #f2d79d;border-radius:16px;padding:12px 16px;margin-bottom:18px;font-size:.88rem}
 .back{display:inline-block;margin-top:26px;color:var(--rose);text-decoration:none}
 </style>
 </head>
@@ -46,6 +47,7 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 <header><span class="logo">Lu<i>Style</i></span><div style="display:flex;gap:10px;align-items:center"><span class="tag">👑 Administradora</span><button class="out" id="salir">Cerrar sesión</button></div></header>
 <main>
 <p class="eb">Panel de administración</p><h1>Mis citas</h1>
+<div class="warn" id="warn" style="display:none">⚠️ <b>Modo prueba:</b> las citas solo se guardan en este navegador. Para ver las citas de tus clientas desde cualquier dispositivo, activa Firebase (mira LEEME.md).</div>
 <p class="sub">Confirma o cancela y avísale a la clienta por WhatsApp con un toque.</p>
 <section class="stats"><div class="st"><span>Total</span><b id="sT">0</b></div><div class="st"><span>Pendientes</span><b id="sP">0</b></div><div class="st"><span>De hoy</span><b id="sH">0</b></div><div class="st"><span>Próximas</span><b id="sF">0</b></div></section>
 <div class="bar"><div class="tabs" id="tabs"></div><button class="clear" id="clear">Eliminar todas</button></div>
@@ -61,6 +63,8 @@ const FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
 const ADMIN_LOCAL = { usuario: "admin", clave: "LuStyle2026" }; // solo para el modo prueba
 const LS_KEY = "belleNailsCitas";
 const FB_V = "10.12.2";
+const SLOTS = window.HORARIOS || ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
+const ANTICIPACION_MIN = window.ANTICIPACION_MIN ?? 60; // minutos mínimos de anticipación para agendar
 
 let _fb;
 function _loadFb() {
@@ -73,15 +77,36 @@ function _loadFb() {
 }
 const _ls = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
 const _save = l => localStorage.setItem(LS_KEY, JSON.stringify(l));
+const _slotId = c => c.date + "_" + c.time;
 
 const Datos = {
   nube: !!FIREBASE_CONFIG,
 
+  /* Horas ya tomadas de un día (sin datos personales) */
+  async ocupados(date) {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      const r = await F.getDocs(F.query(F.collection(db, "ocupados"), F.where("date", "==", date)));
+      return r.docs.map(d => d.data().time);
+    }
+    return _ls().filter(c => c.date === date && c.estado !== "cancelada").map(c => c.time);
+  },
+
+  /* Crea la cita y reserva la hora; lanza Error("OCUPADO") si otra clienta ya la tomó */
   async crear(c) {
     c.estado = "pendiente"; c.creada = Date.now();
-    if (this.nube) { const { F, db } = await _loadFb(); return (await F.addDoc(F.collection(db, "citas"), c)).id; }
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      const ref = F.doc(F.collection(db, "citas")), b = F.writeBatch(db);
+      b.set(ref, c);
+      b.set(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: ref.id });
+      try { await b.commit(); } catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      return ref.id;
+    }
+    const l = _ls();
+    if (l.some(x => x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
     c.id = "c" + c.creada + Math.random().toString(36).slice(2, 6);
-    const l = _ls(); l.push(c); _save(l); return c.id;
+    l.push(c); _save(l); return c.id;
   },
 
   async listar() {
@@ -104,13 +129,32 @@ const Datos = {
     const l = _ls(), c = l.find(x => x.id === id); if (c) Object.assign(c, cambios); _save(l);
   },
 
-  async eliminar(id) {
-    if (this.nube) { const { F, db } = await _loadFb(); return F.deleteDoc(F.doc(db, "citas", id)); }
-    _save(_ls().filter(x => x.id !== id));
+  /* Vuelve a reservar la hora de una cita cancelada (si ya la tomó otra, lanza Error("OCUPADO")) */
+  async ocupar(c) {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      try { await F.setDoc(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: c.id }); }
+      catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      return;
+    }
+    if (_ls().some(x => x.id !== c.id && x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
+  },
+
+  /* Libera la hora de una cita (al cancelarla o eliminarla) sin tocar la de otra clienta */
+  async liberar(c) {
+    if (!this.nube) return;
+    const { F, db } = await _loadFb(), ref = F.doc(db, "ocupados", _slotId(c)), s = await F.getDoc(ref);
+    if (s.exists() && s.data().cita === c.id) await F.deleteDoc(ref);
+  },
+
+  async eliminar(c) {
+    await this.liberar(c);
+    if (this.nube) { const { F, db } = await _loadFb(); return F.deleteDoc(F.doc(db, "citas", c.id)); }
+    _save(_ls().filter(x => x.id !== c.id));
   },
 
   async eliminarTodas() {
-    if (this.nube) { for (const c of await this.listar()) await this.eliminar(c.id); return; }
+    if (this.nube) { for (const c of await this.listar()) await this.eliminar(c); return; }
     localStorage.removeItem(LS_KEY);
   },
 
@@ -131,7 +175,13 @@ const Datos = {
   }
 };
 
-/* Convierte el teléfono de la clienta al formato de WhatsApp (Colombia +57) */
+/* "14:00" -> "2:00 PM" (los textos viejos como "3:00 PM" se dejan igual) */
+function fmtH(t) {
+  const m = /^(\d{2}):(\d{2})$/.exec(t || ""); if (!m) return t || "";
+  let h = +m[1]; const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + m[2] + " " + ap;
+}
+
+/* Teléfono de la clienta al formato de WhatsApp (Colombia +57) */
 function telWhatsApp(t) {
   let d = String(t || "").replace(/\D/g, "");
   if (d.length === 10) d = "57" + d;
@@ -148,6 +198,7 @@ const FILTROS=[["todas","Todas"],["pendiente","Pendientes"],["confirmada","Confi
 
 async function init(){
   if(!await Datos.haySesion()){location.href="login.html";return}
+  if(!Datos.nube)warn.style.display="block";
   await cargar();
 }
 async function cargar(){
@@ -169,7 +220,7 @@ function pintar(){
   <h2>${esc(c.name)}</h2>
   <div class="row">📞 <b>${esc(c.phone)}</b></div>
   <div class="row">💅 <b>${esc(c.service)}</b>${c.price?` · ${esc(c.price)}`:""}</div>
-  <div class="row">📅 <b>${fecha(c.date)}</b> · ${esc(c.time)}</div>
+  <div class="row">📅 <b>${fecha(c.date)}</b> · ${esc(fmtH(c.time))}</div>
   ${c.look?`<div class="row">🎨 Look: <b>${esc(c.look)}</b></div>`:""}
   <div class="act">
    ${c.estado!=="confirmada"?`<button class="b ok" data-a="ok" data-id="${c.id}">Confirmar ✆</button>`:""}
@@ -177,7 +228,7 @@ function pintar(){
    <button class="b del" data-a="del" data-id="${c.id}">Eliminar</button>
   </div></div></article>`).join("");
 }
-function abrirWA(c,texto){window.open(`https://wa.me/${telWhatsApp(c.phone)}?text=${encodeURIComponent(texto)}`,"_blank")}
+function irWA(w,c,texto){const u=`https://wa.me/${telWhatsApp(c.phone)}?text=${encodeURIComponent(texto)}`;if(w)w.location.href=u;else window.open(u,"_blank")}
 
 document.addEventListener("click",async e=>{
   const t=e.target;
@@ -187,15 +238,18 @@ document.addEventListener("click",async e=>{
   const a=t.dataset.a,id=t.dataset.id;if(!a)return;
   const c=CITAS.find(x=>x.id===id);if(!c)return;
   if(a==="ok"){
-    abrirWA(c,`Hola ${c.name} 💖, te escribe LuStyle. Tu cita de ${c.service} quedó *confirmada* para el ${fecha(c.date)} a las ${c.time}. ¡Te esperamos! ✨`);
-    await Datos.actualizar(id,{estado:"confirmada"});toast("Cita confirmada. Envía el mensaje en WhatsApp.");
+    const w=window.open("about:blank","_blank");
+    try{if(c.estado==="cancelada")await Datos.ocupar(c);await Datos.actualizar(id,{estado:"confirmada",motivo:""})}
+    catch(err){if(w)w.close();toast(err&&err.message==="OCUPADO"?"Esa hora ya fue tomada por otra clienta; no se puede reactivar.":"No se pudo confirmar. Intenta de nuevo.");await cargar();return}
+    irWA(w,c,`Hola ${c.name} 💖, te escribe LuStyle. Tu cita de ${c.service} quedó *confirmada* para el ${fecha(c.date)} a las ${fmtH(c.time)}. ¡Te esperamos! ✨`);toast("Cita confirmada. Envía el mensaje en WhatsApp.");
   }
   if(a==="no"){
     const m=prompt("Motivo de la cancelación (opcional):");if(m===null)return;
-    abrirWA(c,`Hola ${c.name}, te escribe LuStyle. Lamentablemente tuvimos que *cancelar* tu cita de ${c.service} del ${fecha(c.date)} a las ${c.time}${m.trim()?`. Motivo: ${m.trim()}`:""}. Escríbenos y la reprogramamos con gusto 💅`);
-    await Datos.actualizar(id,{estado:"cancelada",motivo:m.trim()});toast("Cita cancelada. Envía el mensaje en WhatsApp.");
+    const w=window.open("about:blank","_blank");
+    try{await Datos.actualizar(id,{estado:"cancelada",motivo:m.trim()});await Datos.liberar(c)}catch(err){if(w)w.close();toast("No se pudo cancelar. Intenta de nuevo.");return}
+    irWA(w,c,`Hola ${c.name}, te escribe LuStyle. Lamentablemente tuvimos que *cancelar* tu cita de ${c.service} del ${fecha(c.date)} a las ${fmtH(c.time)}${m.trim()?`. Motivo: ${m.trim()}`:""}. Escríbenos y la reprogramamos con gusto 💅`);toast("Cita cancelada. Envía el mensaje en WhatsApp.");
   }
-  if(a==="del"){if(!confirm("¿Seguro que quieres eliminar esta cita?"))return;await Datos.eliminar(id)}
+  if(a==="del"){if(!confirm("¿Seguro que quieres eliminar esta cita?"))return;await Datos.eliminar(c)}
   await cargar();
 });
 clear.onclick=async()=>{if(!CITAS.length)return toast("No hay citas para eliminar.");if(!confirm("¿Seguro que quieres eliminar TODAS las citas?"))return;await Datos.eliminarTodas();cargar()};

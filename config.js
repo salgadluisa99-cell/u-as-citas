@@ -1,26 +1,12 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// 1. IMPORTA FIRESTORE (La base de datos)
-import { getFirestore } from "firebase/firestore"; 
+/* Configuración de LuStyle (opcional) */
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDpLeCZkvslN8x_JSGzUXvIXIaQZ88BDtg",
-  authDomain: "lustyle-spa.firebaseapp.com", // Asegúrate de rellenar este también
-  projectId: "lustyle-spa",
-  storageBucket: "lustyle-spa.firebasestorage.app",
-  messagingSenderId: "878710810045",
-  appId: "1:878710810045:web:3f80a3b58affd3660fded4",
-  measurementId: "G-F386MQGMKD"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-// 2. INICIALIZA FIRESTORE Y EXPÓRTALO
-const db = getFirestore(app);
-export { db };
-
+/* 1) Citas compartidas entre dispositivos (Firebase). Mira LEEME.md.
+      Mientras esté en null, las citas se guardan SOLO en este navegador (modo prueba).
+      Ejemplo: window.FIREBASE_CONFIG = { apiKey: "...", authDomain: "...", projectId: "...", appId: "..." }; */
 window.FIREBASE_CONFIG = null;
+
+/* 2) Horarios de atención (formato 24 h). Edita, agrega o quita horas. */
+window.HORARIOS = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
+
+/* 3) Minutos mínimos de anticipación para agendar (no se puede reservar una hora que ya pasó). */
+window.ANTICIPACION_MIN = 60;

@@ -37,6 +37,8 @@ const FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
 const ADMIN_LOCAL = { usuario: "admin", clave: "LuStyle2026" }; // solo para el modo prueba
 const LS_KEY = "belleNailsCitas";
 const FB_V = "10.12.2";
+const SLOTS = window.HORARIOS || ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
+const ANTICIPACION_MIN = window.ANTICIPACION_MIN ?? 60; // minutos mínimos de anticipación para agendar
 
 let _fb;
 function _loadFb() {
@@ -49,15 +51,36 @@ function _loadFb() {
 }
 const _ls = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
 const _save = l => localStorage.setItem(LS_KEY, JSON.stringify(l));
+const _slotId = c => c.date + "_" + c.time;
 
 const Datos = {
   nube: !!FIREBASE_CONFIG,
 
+  /* Horas ya tomadas de un día (sin datos personales) */
+  async ocupados(date) {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      const r = await F.getDocs(F.query(F.collection(db, "ocupados"), F.where("date", "==", date)));
+      return r.docs.map(d => d.data().time);
+    }
+    return _ls().filter(c => c.date === date && c.estado !== "cancelada").map(c => c.time);
+  },
+
+  /* Crea la cita y reserva la hora; lanza Error("OCUPADO") si otra clienta ya la tomó */
   async crear(c) {
     c.estado = "pendiente"; c.creada = Date.now();
-    if (this.nube) { const { F, db } = await _loadFb(); return (await F.addDoc(F.collection(db, "citas"), c)).id; }
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      const ref = F.doc(F.collection(db, "citas")), b = F.writeBatch(db);
+      b.set(ref, c);
+      b.set(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: ref.id });
+      try { await b.commit(); } catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      return ref.id;
+    }
+    const l = _ls();
+    if (l.some(x => x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
     c.id = "c" + c.creada + Math.random().toString(36).slice(2, 6);
-    const l = _ls(); l.push(c); _save(l); return c.id;
+    l.push(c); _save(l); return c.id;
   },
 
   async listar() {
@@ -80,13 +103,32 @@ const Datos = {
     const l = _ls(), c = l.find(x => x.id === id); if (c) Object.assign(c, cambios); _save(l);
   },
 
-  async eliminar(id) {
-    if (this.nube) { const { F, db } = await _loadFb(); return F.deleteDoc(F.doc(db, "citas", id)); }
-    _save(_ls().filter(x => x.id !== id));
+  /* Vuelve a reservar la hora de una cita cancelada (si ya la tomó otra, lanza Error("OCUPADO")) */
+  async ocupar(c) {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      try { await F.setDoc(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: c.id }); }
+      catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      return;
+    }
+    if (_ls().some(x => x.id !== c.id && x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
+  },
+
+  /* Libera la hora de una cita (al cancelarla o eliminarla) sin tocar la de otra clienta */
+  async liberar(c) {
+    if (!this.nube) return;
+    const { F, db } = await _loadFb(), ref = F.doc(db, "ocupados", _slotId(c)), s = await F.getDoc(ref);
+    if (s.exists() && s.data().cita === c.id) await F.deleteDoc(ref);
+  },
+
+  async eliminar(c) {
+    await this.liberar(c);
+    if (this.nube) { const { F, db } = await _loadFb(); return F.deleteDoc(F.doc(db, "citas", c.id)); }
+    _save(_ls().filter(x => x.id !== c.id));
   },
 
   async eliminarTodas() {
-    if (this.nube) { for (const c of await this.listar()) await this.eliminar(c.id); return; }
+    if (this.nube) { for (const c of await this.listar()) await this.eliminar(c); return; }
     localStorage.removeItem(LS_KEY);
   },
 
@@ -107,7 +149,13 @@ const Datos = {
   }
 };
 
-/* Convierte el teléfono de la clienta al formato de WhatsApp (Colombia +57) */
+/* "14:00" -> "2:00 PM" (los textos viejos como "3:00 PM" se dejan igual) */
+function fmtH(t) {
+  const m = /^(\d{2}):(\d{2})$/.exec(t || ""); if (!m) return t || "";
+  let h = +m[1]; const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + m[2] + " " + ap;
+}
+
+/* Teléfono de la clienta al formato de WhatsApp (Colombia +57) */
 function telWhatsApp(t) {
   let d = String(t || "").replace(/\D/g, "");
   if (d.length === 10) d = "57" + d;

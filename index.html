@@ -77,9 +77,9 @@ h2{font-size:clamp(2.2rem,7vw,3.6rem);text-align:center;font-weight:700;line-hei
 .q{text-align:center;font-size:clamp(1.8rem,5vw,3rem);font-style:italic;line-height:1.2;max-width:760px;margin:auto}.q em{color:var(--rose)}
 form{max-width:500px;margin:auto;display:grid;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:28px;padding:28px}
 input,select{width:100%;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:300 1rem Jost,sans-serif}
+.hint{font-size:.82rem;color:var(--mute);text-align:center;margin-top:-4px}.hint:empty{display:none}
 .lk{font-size:.9rem;color:#c4414f;text-align:center;min-height:1.2em;font-weight:500}
 footer{background:#2b1220;color:#f6dfe4;text-align:center;padding:50px 22px 70px}
-.wa{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:40;width:60px;height:60px;border-radius:50%;background:#25d366;color:#fff;display:grid;place-items:center;font-size:1.7rem;text-decoration:none;animation:pulse 2.4s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(37,211,102,.6)}100%{box-shadow:0 0 0 22px rgba(37,211,102,0)}}
 .fx{position:fixed;pointer-events:none;z-index:50;color:var(--rose);animation:fx .8s forwards}@keyframes fx{to{opacity:0;transform:translateY(24px) scale(.3) rotate(120deg)}}
 .rv{opacity:0;transform:translateY(32px);transition:opacity .9s,transform .9s}.rv.in{opacity:1;transform:none}
@@ -152,11 +152,12 @@ footer{background:#2b1220;color:#f6dfe4;text-align:center;padding:50px 22px 70px
 
 <div class="alt"><section class="w" id="cita">
 <p class="eb rv">Agenda</p><h2 class="rv">Reserva tu cita</h2>
-<p class="sub rv">Te confirmaremos tu cita por WhatsApp</p>
+<p class="sub rv">Elige fecha y hora disponibles. Te escribiremos por WhatsApp para confirmar tu cita.</p>
 <form id="bookingForm" class="rv">
 <select id="s" required><option value="">Selecciona un servicio</option></select>
 <input id="cDate" type="date" required>
-<select id="cTime" required><option value="">Selecciona una hora</option><option>9:00 AM</option><option>10:00 AM</option><option>11:00 AM</option><option>1:00 PM</option><option>2:00 PM</option><option>3:00 PM</option><option>3:30 PM</option><option>4:30 PM</option><option>5:30 PM</option><option>6:30 PM</option></select>
+<select id="cTime" required><option value="">Primero elige la fecha</option></select>
+<p class="hint" id="hint"></p>
 <input id="cName" placeholder="Nombre completo" required>
 <input id="cPhone" type="tel" placeholder="Número de teléfono (ej. 300 123 4567)" required>
 <input id="cEmail" type="email" placeholder="Correo electrónico (opcional)">
@@ -171,17 +172,16 @@ footer{background:#2b1220;color:#f6dfe4;text-align:center;padding:50px 22px 70px
 <div class="cf">
 <div class="ok">✓</div>
 <h2>¡Cita agendada!</h2>
-<p class="sub">Tu cita fue registrada correctamente.</p>
+<p class="sub">Tu cita quedó registrada. Te escribiremos por WhatsApp al número que registraste para confirmarla.</p>
 <img class="cfimg" id="rImg" alt="Tu diseño">
 <div class="sm-rows">
 <div><span>Cliente</span><b id="rName"></b></div><div><span>Servicio</span><b id="rService"></b></div><div><span>Fecha</span><b id="rDate"></b></div><div><span>Hora</span><b id="rTime"></b></div><div><span>Teléfono</span><b id="rPhone"></b></div><div id="rLookRow" style="display:none"><span>Tu look</span><b id="rLook"></b></div>
 </div>
-<div class="bt" style="justify-content:center"><a class="btn" id="rWa" href="#" target="_blank" rel="noopener">Avisar por WhatsApp</a><button class="btn" style="background:var(--ink)" onclick="nuevaCita()">Agendar otra cita</button></div>
+<div class="bt" style="justify-content:center"><button class="btn" style="background:var(--ink)" onclick="nuevaCita()">Agendar otra cita</button></div>
 </div>
 </section>
 
 <footer><span class="logo">Lu<i>Style</i></span><p style="opacity:.7;margin-top:6px">Manicure & Pedicure · © 2026</p><p style="margin-top:14px"><a class="adm" href="login.html">Administración</a></p></footer>
-<a class="wa" id="wa" aria-label="WhatsApp" href="#">✆</a>
 
 <script src="config.js"></script>
 <script>
@@ -190,6 +190,8 @@ const FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
 const ADMIN_LOCAL = { usuario: "admin", clave: "LuStyle2026" }; // solo para el modo prueba
 const LS_KEY = "belleNailsCitas";
 const FB_V = "10.12.2";
+const SLOTS = window.HORARIOS || ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
+const ANTICIPACION_MIN = window.ANTICIPACION_MIN ?? 60; // minutos mínimos de anticipación para agendar
 
 let _fb;
 function _loadFb() {
@@ -202,15 +204,36 @@ function _loadFb() {
 }
 const _ls = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
 const _save = l => localStorage.setItem(LS_KEY, JSON.stringify(l));
+const _slotId = c => c.date + "_" + c.time;
 
 const Datos = {
   nube: !!FIREBASE_CONFIG,
 
+  /* Horas ya tomadas de un día (sin datos personales) */
+  async ocupados(date) {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      const r = await F.getDocs(F.query(F.collection(db, "ocupados"), F.where("date", "==", date)));
+      return r.docs.map(d => d.data().time);
+    }
+    return _ls().filter(c => c.date === date && c.estado !== "cancelada").map(c => c.time);
+  },
+
+  /* Crea la cita y reserva la hora; lanza Error("OCUPADO") si otra clienta ya la tomó */
   async crear(c) {
     c.estado = "pendiente"; c.creada = Date.now();
-    if (this.nube) { const { F, db } = await _loadFb(); return (await F.addDoc(F.collection(db, "citas"), c)).id; }
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      const ref = F.doc(F.collection(db, "citas")), b = F.writeBatch(db);
+      b.set(ref, c);
+      b.set(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: ref.id });
+      try { await b.commit(); } catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      return ref.id;
+    }
+    const l = _ls();
+    if (l.some(x => x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
     c.id = "c" + c.creada + Math.random().toString(36).slice(2, 6);
-    const l = _ls(); l.push(c); _save(l); return c.id;
+    l.push(c); _save(l); return c.id;
   },
 
   async listar() {
@@ -233,13 +256,32 @@ const Datos = {
     const l = _ls(), c = l.find(x => x.id === id); if (c) Object.assign(c, cambios); _save(l);
   },
 
-  async eliminar(id) {
-    if (this.nube) { const { F, db } = await _loadFb(); return F.deleteDoc(F.doc(db, "citas", id)); }
-    _save(_ls().filter(x => x.id !== id));
+  /* Vuelve a reservar la hora de una cita cancelada (si ya la tomó otra, lanza Error("OCUPADO")) */
+  async ocupar(c) {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      try { await F.setDoc(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: c.id }); }
+      catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      return;
+    }
+    if (_ls().some(x => x.id !== c.id && x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
+  },
+
+  /* Libera la hora de una cita (al cancelarla o eliminarla) sin tocar la de otra clienta */
+  async liberar(c) {
+    if (!this.nube) return;
+    const { F, db } = await _loadFb(), ref = F.doc(db, "ocupados", _slotId(c)), s = await F.getDoc(ref);
+    if (s.exists() && s.data().cita === c.id) await F.deleteDoc(ref);
+  },
+
+  async eliminar(c) {
+    await this.liberar(c);
+    if (this.nube) { const { F, db } = await _loadFb(); return F.deleteDoc(F.doc(db, "citas", c.id)); }
+    _save(_ls().filter(x => x.id !== c.id));
   },
 
   async eliminarTodas() {
-    if (this.nube) { for (const c of await this.listar()) await this.eliminar(c.id); return; }
+    if (this.nube) { for (const c of await this.listar()) await this.eliminar(c); return; }
     localStorage.removeItem(LS_KEY);
   },
 
@@ -260,7 +302,13 @@ const Datos = {
   }
 };
 
-/* Convierte el teléfono de la clienta al formato de WhatsApp (Colombia +57) */
+/* "14:00" -> "2:00 PM" (los textos viejos como "3:00 PM" se dejan igual) */
+function fmtH(t) {
+  const m = /^(\d{2}):(\d{2})$/.exec(t || ""); if (!m) return t || "";
+  let h = +m[1]; const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + m[2] + " " + ap;
+}
+
+/* Teléfono de la clienta al formato de WhatsApp (Colombia +57) */
 function telWhatsApp(t) {
   let d = String(t || "").replace(/\D/g, "");
   if (d.length === 10) d = "57" + d;
@@ -269,7 +317,6 @@ function telWhatsApp(t) {
 
 </script>
 <script>
-const PHONE="573000000000"; // Cambia por tu número de WhatsApp con código de país
 const NP={round:"M0 70V30Q0 0 28 0Q56 0 56 30V70Q28 76 0 70Z",square:"M0 70V8Q0 0 8 0H48Q56 0 56 8V70Q28 76 0 70Z",almond:"M0 70V42Q0 20 20 6Q28 -2 36 6Q56 20 56 42V70Q28 76 0 70Z",coffin:"M0 70V32L12 0H44L56 32V70Q28 76 0 70Z",stiletto:"M0 70V44Q4 20 28 -16Q52 20 56 44V70Q28 76 0 70Z"};
 let U=0;
 function nail(sh,c,fin){const i=++U,d=NP[sh],b=fin==="french"?"#f7ddd3":c;
@@ -311,9 +358,20 @@ const CS=["#ffd9e2","#f4d6a0","#ffffff","#ff9fb8","#e8c070"];
 for(let i=0;i<30;i++){const e=document.createElement("span");e.className="sp";e.textContent=["✦","❀","✧","✦"][i%4];e.style.cssText=`left:${Math.random()*100}%;color:${CS[i%5]};animation-duration:${9+Math.random()*9}s;animation-delay:${-Math.random()*14}s;font-size:${14+Math.random()*18}px`;document.body.appendChild(e)}
 let lt=0;addEventListener("pointermove",e=>{const n=Date.now();if(n-lt<70)return;lt=n;const o=document.createElement("span");o.className="fx";o.textContent="✦";o.style.left=e.clientX+"px";o.style.top=e.clientY+"px";document.body.appendChild(o);setTimeout(()=>o.remove(),800)});
 // Citas (misma clave y campos que usa admin.html)
-const msg=t=>`https://wa.me/${PHONE}?text=${encodeURIComponent(t)}`;
-wa.href=msg("Hola LuStyle, quiero información de sus servicios 💅");
 cDate.min=new Date().toLocaleDateString("en-CA");
+async function pintarHoras(){
+ const d=cDate.value;hint.textContent="";
+ if(!d){cTime.innerHTML='<option value="">Primero elige la fecha</option>';return}
+ cTime.innerHTML='<option value="">Cargando horarios…</option>';
+ let occ=[];try{occ=await Datos.ocupados(d)}catch(e){console.error(e)}
+ if(cDate.value!==d)return;
+ const lim=Date.now()+ANTICIPACION_MIN*60000;let libres=0,html="";
+ SLOTS.forEach(t=>{if(new Date(d+"T"+t+":00").getTime()<lim)return;
+  if(occ.includes(t))html+=`<option value="" disabled>${fmtH(t)} · ocupado</option>`;else{libres++;html+=`<option value="${t}">${fmtH(t)}</option>`}});
+ cTime.innerHTML=(libres?'<option value="">Selecciona una hora</option>':'<option value="">Sin horarios disponibles</option>')+html;
+ if(!libres)hint.textContent="No quedan horarios disponibles ese día. Elige otra fecha.";
+}
+cDate.addEventListener("change",pintarHoras);
 function pick(v){s.value=v;document.getElementById("cita").scrollIntoView({behavior:"smooth"})}
 let DISENO="";
 function comprimir(file){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);ok(c.toDataURL("image/jpeg",.72))};im.onerror=no;im.src=r.result};r.onerror=no;r.readAsDataURL(file)})}
@@ -322,18 +380,18 @@ cFile.onchange=async()=>{const f=cFile.files[0];if(!f)return;
  catch(_){lk.textContent="No pude leer esa imagen, prueba con otra.";DISENO=""}};
 upX.onclick=()=>{DISENO="";cFile.value="";upP.style.display="none";upT.style.display="";upX.style.display="none"};
 bookingForm.addEventListener("submit",async e=>{e.preventDefault();
+if(new Date(cDate.value+"T"+cTime.value+":00").getTime()<Date.now()){lk.textContent="Esa hora ya pasó. Elige otro horario.";pintarHoras();return}
 const btn=bookingForm.querySelector("button[type=submit]");btn.disabled=true;btn.textContent="Guardando…";lk.textContent="";
 const c={name:cName.value.trim(),phone:cPhone.value.trim(),email:cEmail.value.trim(),service:s.value,date:cDate.value,time:cTime.value};
 c.price=(SV.find(v=>v[1]===c.service)||[])[7]||"";if(DISENO)c.design=DISENO;if(S.t)c.look=LOOK;
-try{await Datos.crear(c)}catch(err){console.error(err);lk.textContent="No pudimos guardar tu cita: "+(err&&err.message?err.message:"revisa tu conexión")+". Si subiste una imagen muy pesada, prueba con otra.";lk.scrollIntoView({block:"center"});btn.disabled=false;btn.textContent="Confirmar cita";return}
+try{await Datos.crear(c)}catch(err){console.error(err);if(err&&err.message==="OCUPADO"){lk.textContent="Ese horario acaba de ser tomado por otra clienta. Elige otra hora.";btn.disabled=false;btn.textContent="Confirmar cita";pintarHoras();return}lk.textContent="No pudimos guardar tu cita: "+(err&&err.message?err.message:"revisa tu conexión")+". Si subiste una imagen muy pesada, prueba con otra.";lk.scrollIntoView({block:"center"});btn.disabled=false;btn.textContent="Confirmar cita";return}
 btn.disabled=false;btn.textContent="Confirmar cita";
-rName.textContent=c.name;rService.textContent=c.service;rPhone.textContent=c.phone;rTime.textContent=c.time;
+rName.textContent=c.name;rService.textContent=c.service;rPhone.textContent=c.phone;rTime.textContent=fmtH(c.time);
 rDate.textContent=new Date(c.date+"T00:00:00").toLocaleDateString("es-CO");
 rLookRow.style.display=c.look?"flex":"none";rLook.textContent=c.look||"";
 rImg.style.display=c.design?"block":"none";if(c.design)rImg.src=c.design;
-rWa.href=msg(`Hola LuStyle, soy ${c.name}. Agendé: ${c.service}, el ${rDate.textContent} a las ${c.time}.`+(c.look?` Look: ${c.look}.`:""));
 confirmation.style.display="block";confirmation.classList.add("in");confirmation.scrollIntoView({behavior:"smooth"})});
-function nuevaCita(){bookingForm.reset();upX.onclick();confirmation.style.display="none";lk.textContent="";document.getElementById("cita").scrollIntoView({behavior:"smooth"})}
+function nuevaCita(){bookingForm.reset();pintarHoras();upX.onclick();confirmation.style.display="none";lk.textContent="";document.getElementById("cita").scrollIntoView({behavior:"smooth"})}
 </script>
 </body>
 </html>
