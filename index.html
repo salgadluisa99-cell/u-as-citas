@@ -205,6 +205,14 @@ function _loadFb() {
 const _ls = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
 const _save = l => localStorage.setItem(LS_KEY, JSON.stringify(l));
 const _slotId = c => c.date + "_" + c.time;
+/* Un "permission-denied" solo es hora ocupada si ese horario realmente existe; si no, es un problema de reglas */
+async function _denegado(F, db, c, e) {
+  if (e && e.code === "permission-denied") {
+    try { if ((await F.getDoc(F.doc(db, "ocupados", _slotId(c)))).exists()) return new Error("OCUPADO"); } catch (_) {}
+    return new Error("Firebase rechazó el guardado (revisa las reglas de Firestore)");
+  }
+  return e;
+}
 
 const Datos = {
   nube: !!FIREBASE_CONFIG,
@@ -227,7 +235,7 @@ const Datos = {
       const ref = F.doc(F.collection(db, "citas")), b = F.writeBatch(db);
       b.set(ref, c);
       b.set(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: ref.id });
-      try { await b.commit(); } catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      try { await b.commit(); } catch (e) { throw await _denegado(F, db, c, e); }
       return ref.id;
     }
     const l = _ls();
@@ -261,7 +269,7 @@ const Datos = {
     if (this.nube) {
       const { F, db } = await _loadFb();
       try { await F.setDoc(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: c.id }); }
-      catch (e) { if (e && e.code === "permission-denied") throw new Error("OCUPADO"); throw e; }
+      catch (e) { throw await _denegado(F, db, c, e); }
       return;
     }
     if (_ls().some(x => x.id !== c.id && x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
