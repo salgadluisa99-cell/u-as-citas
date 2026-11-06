@@ -26,8 +26,8 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 .clear{border:1px solid var(--bad);color:var(--bad);background:transparent;padding:8px 16px;border-radius:24px;cursor:pointer;font:400 .8rem Jost}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
 .cita{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;display:flex;flex-direction:column}
-.img{height:190px;background:linear-gradient(135deg,#fbe6e4,#f6d3df);display:grid;place-items:center;color:var(--mute);font-size:.85rem;cursor:default;position:relative}
-.img img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.img{height:190px;flex:none;background:linear-gradient(135deg,#fbe6e4,#f6d3df);display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:.85rem;position:relative;overflow:hidden}
+.img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:zoom-in}
 .img small{position:absolute;left:10px;bottom:8px;background:rgba(43,18,32,.75);color:#fff;padding:2px 10px;border-radius:12px;font-size:.7rem}
 .body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:4px;flex:1}
 .body h2{font-size:1.5rem;line-height:1.1}
@@ -56,7 +56,7 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 </main>
 <div class="lb" id="lb"><img alt="Diseño"></div>
 <div class="toast" id="tst"></div>
-<script src="config.js"></script>
+<script src="config.js?v=20261024"></script>
 <script>
 /* LuStyle · capa de datos (citas). La configuración viene de config.js (opcional). */
 const FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
@@ -210,7 +210,7 @@ async function init(){
   await cargar();
 }
 async function cargar(){
-  try{CITAS=await Datos.listar()}catch(e){toast("No pude cargar las citas. Revisa tu conexión o la configuración.");console.error(e);CITAS=[]}
+  try{CITAS=await Datos.listar()}catch(e){toast("No pude cargar las citas: "+(e&&(e.code||e.message)||"error desconocido"));console.error(e);CITAS=[]}
   pintar();
 }
 function pintar(){
