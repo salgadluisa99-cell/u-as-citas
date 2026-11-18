@@ -192,8 +192,8 @@ const FB_V = "10.12.2";
 /* Turnos: cada cita reserva un bloque de tiempo completo; mientras dure, esa franja no se ofrece a otras clientas.
    Todo se puede cambiar en config.js (si no aparece allí, se usan estos valores). */
 const PASO_MIN = window.PASO_MIN || 30;                                  // cada cuántos minutos puede empezar una cita
-const HORA_INICIO = window.HORA_INICIO || "08:00";                       // primera hora de inicio
-const HORA_ULTIMO_TURNO = window.HORA_ULTIMO_TURNO || "19:30";           // última hora en que puede empezar una cita
+const HORA_INICIO = window.HORA_INICIO || "07:00";                       // primera hora de inicio
+const HORA_ULTIMO_TURNO = window.HORA_ULTIMO_TURNO || "19:00";           // última hora en que puede empezar una cita
 const DURACION_MIN = window.DURACION_MIN || 210;                         // turno de 3 h 30 min (manos, acrílico, polygel…)
 const DURACION_PEDICURE_MIN = window.DURACION_PEDICURE_MIN || 120;       // turno de 2 h (servicios de pies)
 const ANTICIPACION_MIN = window.ANTICIPACION_MIN ?? 60;                  // minutos mínimos de anticipación para agendar
@@ -414,10 +414,11 @@ async function pintarHoras(){
  const lim=Date.now()+ANTICIPACION_MIN*60000;let libres=0,html="";
  SLOTS.forEach(t=>{if(new Date(d+"T"+t+":00").getTime()<lim)return;
   if(_bloques({time:t,dur}).some(x=>occ.includes(x)))return;
-  libres++;html+=`<option value="${t}">${fmtH(t)} – ${fmtH(_hhmm(_min(t)+dur))}</option>`});
+  libres++;html+=`<option value="${t}">${fmtH(t)}</option>`});
  cTime.innerHTML=(libres?'<option value="">Selecciona una hora</option>':'<option value="">Sin horarios disponibles</option>')+html;
- hint.textContent=libres?`Cada cita reserva un turno de ${fmtDur(dur)}. Solo se muestran las horas libres.`:"No quedan horarios disponibles ese día para este servicio. Elige otra fecha.";
+ hint.textContent=libres?`Elige la hora de inicio. Tu turno dura ${fmtDur(dur)}.`:"No quedan horarios disponibles ese día para este servicio. Elige otra fecha.";
 }
+cTime.addEventListener("change",()=>{const dur=durServicio(s.value);if(cTime.value)hint.textContent=`Tu turno: ${fmtH(cTime.value)} – ${fmtH(_hhmm(_min(cTime.value)+dur))} (${fmtDur(dur)}).`;else if(s.value)hint.textContent=`Elige la hora de inicio. Tu turno dura ${fmtDur(dur)}.`});
 cDate.addEventListener("change",pintarHoras);
 s.addEventListener("change",pintarHoras);
 function pick(v){s.value=v;pintarHoras();document.getElementById("cita").scrollIntoView({behavior:"smooth"})}

@@ -40,8 +40,8 @@ const FB_V = "10.12.2";
 /* Turnos: cada cita reserva un bloque de tiempo completo; mientras dure, esa franja no se ofrece a otras clientas.
    Todo se puede cambiar en config.js (si no aparece allí, se usan estos valores). */
 const PASO_MIN = window.PASO_MIN || 30;                                  // cada cuántos minutos puede empezar una cita
-const HORA_INICIO = window.HORA_INICIO || "08:00";                       // primera hora de inicio
-const HORA_ULTIMO_TURNO = window.HORA_ULTIMO_TURNO || "19:30";           // última hora en que puede empezar una cita
+const HORA_INICIO = window.HORA_INICIO || "07:00";                       // primera hora de inicio
+const HORA_ULTIMO_TURNO = window.HORA_ULTIMO_TURNO || "19:00";           // última hora en que puede empezar una cita
 const DURACION_MIN = window.DURACION_MIN || 210;                         // turno de 3 h 30 min (manos, acrílico, polygel…)
 const DURACION_PEDICURE_MIN = window.DURACION_PEDICURE_MIN || 120;       // turno de 2 h (servicios de pies)
 const ANTICIPACION_MIN = window.ANTICIPACION_MIN ?? 60;                  // minutos mínimos de anticipación para agendar

@@ -39,8 +39,8 @@ service cloud.firestore {
 
 ## 2) Horarios y turnos
 Cada cita reserva un **turno completo**: manos = 3 h 30 min, pies (pedicure) = 2 h.
-Si una clienta agenda a las 8:00 AM (manos), la siguiente cita de manos puede empezar desde las 11:30 AM.
-Las horas de inicio salen cada 30 min entre `HORA_INICIO` (8:00) y `HORA_ULTIMO_TURNO` (19:30 = 7:30 PM).
+Si una clienta agenda a las 7:00 AM (manos), la siguiente cita de manos puede empezar desde las 10:30 AM.
+Las horas de inicio salen cada 30 min entre `HORA_INICIO` (7:00 AM) y `HORA_ULTIMO_TURNO` (19:00 = 7:00 PM).
 En config.js puedes cambiar: `HORA_INICIO`, `HORA_ULTIMO_TURNO`, `PASO_MIN`, `DURACION_MIN`, `DURACION_PEDICURE_MIN`, `ANTICIPACION_MIN`.
 - Solo se muestran las horas libres (las que se cruzan con otro turno no aparecen).
 - Las horas que ya pasaron (o están a menos de ANTICIPACION_MIN minutos) no se muestran.
