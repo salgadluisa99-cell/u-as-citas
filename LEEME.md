@@ -23,7 +23,7 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == "TU_CORREO@gmail.com";
     }
     match /citas/{id} {
-      allow create: if request.resource.size < 900000 && request.resource.data.estado == "pendiente";
+      allow create: if request.resource.data.estado == "pendiente";
       allow read, update, delete: if esAdmin();
     }
     // Horas ocupadas (solo fecha y hora, sin datos personales). Evita que dos clientas tomen la misma hora.
@@ -37,15 +37,19 @@ service cloud.firestore {
 ```
 6. Authentication > Settings > Dominios autorizados: agrega el dominio donde publiques la página.
 
-## 2) Horarios
-En config.js edita `window.HORARIOS` (formato 24 h) y `window.ANTICIPACION_MIN`.
-- Una hora ocupada aparece deshabilitada para las demás clientas.
+## 2) Horarios y turnos
+Cada cita reserva un **turno completo**: manos = 3 h 30 min, pies (pedicure) = 2 h.
+Si una clienta agenda a las 8:00 AM (manos), la siguiente cita de manos puede empezar desde las 11:30 AM.
+Las horas de inicio salen cada 30 min entre `HORA_INICIO` (8:00) y `HORA_ULTIMO_TURNO` (19:30 = 7:30 PM).
+En config.js puedes cambiar: `HORA_INICIO`, `HORA_ULTIMO_TURNO`, `PASO_MIN`, `DURACION_MIN`, `DURACION_PEDICURE_MIN`, `ANTICIPACION_MIN`.
+- Solo se muestran las horas libres (las que se cruzan con otro turno no aparecen).
 - Las horas que ya pasaron (o están a menos de ANTICIPACION_MIN minutos) no se muestran.
-- Si cancelas o eliminas una cita, esa hora queda libre otra vez.
+- Si cancelas una cita, el turno queda bloqueado; el panel te pregunta si quieres liberarlo.
+- Las citas hechas antes de este cambio solo bloquean su hora de inicio (30 min).
+- Las reglas de Firestore no cambian.
 
 ## 3) WhatsApp
 Solo tú escribes a la clienta: al confirmar o cancelar en el panel se abre WhatsApp con el mensaje listo; tú presionas enviar.
 
 ## Modo prueba
 Usuario `admin` · contraseña `LuStyle2026` (en el código; cámbiala o usa Firebase).
-

@@ -56,15 +56,31 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 </main>
 <div class="lb" id="lb"><img alt="Diseño"></div>
 <div class="toast" id="tst"></div>
-<script src="config.js?v=20261024"></script>
+<script src="config.js?v=20261117"></script>
 <script>
 /* LuStyle · capa de datos (citas). La configuración viene de config.js (opcional). */
 const FIREBASE_CONFIG = window.FIREBASE_CONFIG || null;
 const ADMIN_LOCAL = { usuario: "admin", clave: "LuStyle2026" }; // solo para el modo prueba
 const LS_KEY = "belleNailsCitas";
 const FB_V = "10.12.2";
-const SLOTS = window.HORARIOS || ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00"];
-const ANTICIPACION_MIN = window.ANTICIPACION_MIN ?? 60; // minutos mínimos de anticipación para agendar
+/* Turnos: cada cita reserva un bloque de tiempo completo; mientras dure, esa franja no se ofrece a otras clientas.
+   Todo se puede cambiar en config.js (si no aparece allí, se usan estos valores). */
+const PASO_MIN = window.PASO_MIN || 30;                                  // cada cuántos minutos puede empezar una cita
+const HORA_INICIO = window.HORA_INICIO || "08:00";                       // primera hora de inicio
+const HORA_ULTIMO_TURNO = window.HORA_ULTIMO_TURNO || "19:30";           // última hora en que puede empezar una cita
+const DURACION_MIN = window.DURACION_MIN || 210;                         // turno de 3 h 30 min (manos, acrílico, polygel…)
+const DURACION_PEDICURE_MIN = window.DURACION_PEDICURE_MIN || 120;       // turno de 2 h (servicios de pies)
+const ANTICIPACION_MIN = window.ANTICIPACION_MIN ?? 60;                  // minutos mínimos de anticipación para agendar
+const _min = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ""); return m ? +m[1] * 60 + +m[2] : NaN; };
+const _hhmm = n => String(Math.floor(n / 60)).padStart(2, "0") + ":" + String(n % 60).padStart(2, "0");
+const SLOTS = (() => { const a = [], f = _min(HORA_ULTIMO_TURNO); for (let t = _min(HORA_INICIO); t <= f; t += PASO_MIN) a.push(_hhmm(t)); return a; })();
+const durServicio = nombre => /pies|pedicure/i.test(nombre || "") ? DURACION_PEDICURE_MIN : DURACION_MIN;
+/* Franjas de PASO_MIN minutos que ocupa una cita (las citas viejas, sin duración, ocupan una sola) */
+function _bloques(c) {
+  const ini = _min(c.time); if (isNaN(ini)) return [c.time];
+  const n = Math.max(1, Math.ceil((c.dur || PASO_MIN) / PASO_MIN));
+  return Array.from({ length: n }, (_, i) => _hhmm(ini + i * PASO_MIN));
+}
 
 let _fb;
 function _loadFb() {
@@ -77,11 +93,15 @@ function _loadFb() {
 }
 const _ls = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
 const _save = l => localStorage.setItem(LS_KEY, JSON.stringify(l));
-const _slotId = c => c.date + "_" + c.time;
-/* Un "permission-denied" solo es hora ocupada si ese horario realmente existe; si no, es un problema de reglas */
-async function _denegado(F, db, c, e) {
+const _slotId = (c, t) => c.date + "_" + (t || c.time);
+/* Una cita ocupa su hora si no está cancelada, o si fue cancelada manteniendo la hora bloqueada (liberada === false) */
+const _activa = c => c.estado !== "cancelada" || c.liberada === false;
+/* Un "permission-denied" solo es hora ocupada si alguna de las franjas ya existe (de otra cita); si no, es un problema de reglas */
+async function _denegado(F, db, c, e, propia) {
   if (e && e.code === "permission-denied") {
-    try { if ((await F.getDoc(F.doc(db, "ocupados", _slotId(c)))).exists()) return new Error("OCUPADO"); } catch (_) {}
+    try {
+      for (const t of _bloques(c)) { const d = await F.getDoc(F.doc(db, "ocupados", _slotId(c, t))); if (d.exists() && d.data().cita !== propia) return new Error("OCUPADO"); }
+    } catch (_) {}
     return new Error("Firebase rechazó el guardado (revisa las reglas de Firestore)");
   }
   return e;
@@ -90,29 +110,29 @@ async function _denegado(F, db, c, e) {
 const Datos = {
   nube: !!FIREBASE_CONFIG,
 
-  /* Horas ya tomadas de un día (sin datos personales) */
+  /* Franjas de media hora ya tomadas en un día (sin datos personales) */
   async ocupados(date) {
     if (this.nube) {
       const { F, db } = await _loadFb();
       const r = await F.getDocs(F.query(F.collection(db, "ocupados"), F.where("date", "==", date)));
       return r.docs.map(d => d.data().time);
     }
-    return _ls().filter(c => c.date === date && c.estado !== "cancelada").map(c => c.time);
+    return _ls().filter(c => c.date === date && _activa(c)).flatMap(_bloques);
   },
 
-  /* Crea la cita y reserva la hora; lanza Error("OCUPADO") si otra clienta ya la tomó */
+  /* Crea la cita y reserva todo su turno; lanza Error("OCUPADO") si alguna franja ya la tomó otra clienta */
   async crear(c) {
-    c.estado = "pendiente"; c.creada = Date.now();
+    c.estado = "pendiente"; c.creada = Date.now(); c.dur = c.dur || durServicio(c.service);
     if (this.nube) {
       const { F, db } = await _loadFb();
       const ref = F.doc(F.collection(db, "citas")), b = F.writeBatch(db);
       b.set(ref, c);
-      b.set(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: ref.id });
+      _bloques(c).forEach(t => b.set(F.doc(db, "ocupados", _slotId(c, t)), { date: c.date, time: t, cita: ref.id }));
       try { await b.commit(); } catch (e) { throw await _denegado(F, db, c, e); }
       return ref.id;
     }
-    const l = _ls();
-    if (l.some(x => x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
+    const l = _ls(), mias = _bloques(c);
+    if (l.some(x => x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t)))) throw new Error("OCUPADO");
     c.id = "c" + c.creada + Math.random().toString(36).slice(2, 6);
     l.push(c); _save(l); return c.id;
   },
@@ -137,22 +157,33 @@ const Datos = {
     const l = _ls(), c = l.find(x => x.id === id); if (c) Object.assign(c, cambios); _save(l);
   },
 
-  /* Vuelve a reservar la hora de una cita cancelada (si ya la tomó otra, lanza Error("OCUPADO")) */
+  /* Vuelve a reservar el turno de una cita cancelada (si ya lo tomó otra, lanza Error("OCUPADO")) */
   async ocupar(c) {
     if (this.nube) {
       const { F, db } = await _loadFb();
-      try { await F.setDoc(F.doc(db, "ocupados", _slotId(c)), { date: c.date, time: c.time, cita: c.id }); }
-      catch (e) { throw await _denegado(F, db, c, e); }
+      try {
+        const b = F.writeBatch(db); let nuevos = 0;
+        for (const t of _bloques(c)) {
+          const ref = F.doc(db, "ocupados", _slotId(c, t)), sn = await F.getDoc(ref);
+          if (sn.exists()) { if (sn.data().cita === c.id) continue; throw new Error("OCUPADO"); }
+          b.set(ref, { date: c.date, time: t, cita: c.id }); nuevos++;
+        }
+        if (nuevos) await b.commit();
+      } catch (e) { if (e && e.message === "OCUPADO") throw e; throw await _denegado(F, db, c, e, c.id); }
       return;
     }
-    if (_ls().some(x => x.id !== c.id && x.date === c.date && x.time === c.time && x.estado !== "cancelada")) throw new Error("OCUPADO");
+    const mias = _bloques(c);
+    if (_ls().some(x => x.id !== c.id && x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t)))) throw new Error("OCUPADO");
   },
 
-  /* Libera la hora de una cita (al cancelarla o eliminarla) sin tocar la de otra clienta */
+  /* Libera el turno de una cita (al cancelarla o eliminarla) sin tocar el de otra clienta */
   async liberar(c) {
     if (!this.nube) return;
-    const { F, db } = await _loadFb(), ref = F.doc(db, "ocupados", _slotId(c)), s = await F.getDoc(ref);
-    if (s.exists() && s.data().cita === c.id) await F.deleteDoc(ref);
+    const { F, db } = await _loadFb();
+    for (const t of _bloques(c)) {
+      const ref = F.doc(db, "ocupados", _slotId(c, t)), s = await F.getDoc(ref);
+      if (s.exists() && s.data().cita === c.id) await F.deleteDoc(ref);
+    }
   },
 
   async eliminar(c) {
@@ -188,6 +219,11 @@ function fmtH(t) {
   const m = /^(\d{2}):(\d{2})$/.exec(t || ""); if (!m) return t || "";
   let h = +m[1]; const ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + m[2] + " " + ap;
 }
+
+/* "08:00" + 210 min -> "8:00 AM – 11:30 AM" */
+function rangoH(c) { const i = _min(c.time); return (isNaN(i) || !c.dur) ? fmtH(c.time) : fmtH(c.time) + " – " + fmtH(_hhmm(i + c.dur)); }
+/* 210 -> "3 h 30 min" */
+function fmtDur(m) { const h = Math.floor(m / 60), r = m % 60; return (h ? h + " h" : "") + (h && r ? " " : "") + (r ? r + " min" : ""); }
 
 /* Teléfono de la clienta al formato de WhatsApp (Colombia +57) */
 function telWhatsApp(t) {
@@ -228,7 +264,7 @@ function pintar(){
   <h2>${esc(c.name)}</h2>
   <div class="row">📞 <b>${esc(c.phone)}</b></div>
   <div class="row">💅 <b>${esc(c.service)}</b>${c.price?` · ${esc(c.price)}`:""}</div>
-  <div class="row">📅 <b>${fecha(c.date)}</b> · ${esc(fmtH(c.time))}</div>
+  <div class="row">📅 <b>${fecha(c.date)}</b> · ${esc(rangoH(c))}</div>
   ${c.look?`<div class="row">🎨 Look: <b>${esc(c.look)}</b></div>`:""}
   <div class="act">
    ${c.estado!=="confirmada"?`<button class="b ok" data-a="ok" data-id="${c.id}">Confirmar ✆</button>`:""}
@@ -254,8 +290,9 @@ document.addEventListener("click",async e=>{
   if(a==="no"){
     const m=prompt("Motivo de la cancelación (opcional):");if(m===null)return;
     const w=window.open("about:blank","_blank");
-    try{await Datos.actualizar(id,{estado:"cancelada",motivo:m.trim()});await Datos.liberar(c)}catch(err){if(w)w.close();toast("No se pudo cancelar. Intenta de nuevo.");return}
-    irWA(w,c,`Hola ${c.name}, te escribe LuStyle. Lamentablemente tuvimos que *cancelar* tu cita de ${c.service} del ${fecha(c.date)} a las ${fmtH(c.time)}${m.trim()?`. Motivo: ${m.trim()}`:""}. Escríbenos y la reprogramamos con gusto 💅`);toast("Cita cancelada. Envía el mensaje en WhatsApp.");
+    const libera=confirm("¿Quieres que esa hora vuelva a quedar disponible para otras clientas?\n\nAceptar = liberar la hora\nCancelar = mantenerla bloqueada");
+    try{await Datos.actualizar(id,{estado:"cancelada",motivo:m.trim(),liberada:libera});if(libera)await Datos.liberar(c)}catch(err){if(w)w.close();toast("No se pudo cancelar. Intenta de nuevo.");return}
+    irWA(w,c,`Hola ${c.name}, te escribe LuStyle. Lamentablemente tuvimos que *cancelar* tu cita de ${c.service} del ${fecha(c.date)} a las ${fmtH(c.time)}${m.trim()?`. Motivo: ${m.trim()}`:""}. Escríbenos y la reprogramamos con gusto 💅`);toast(libera?"Cita cancelada y hora liberada. Envía el mensaje en WhatsApp.":"Cita cancelada; la hora sigue bloqueada. Envía el mensaje en WhatsApp.");
   }
   if(a==="del"){if(!confirm("¿Seguro que quieres eliminar esta cita?"))return;await Datos.eliminar(c)}
   await cargar();
