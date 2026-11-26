@@ -53,3 +53,10 @@ Solo tú escribes a la clienta: al confirmar o cancelar en el panel se abre What
 
 ## Modo prueba
 Usuario `admin` · contraseña `LuStyle2026` (en el código; cámbiala o usa Firebase).
+
+## 4) Días y horas no disponibles (panel de administradora)
+En el panel hay una tarjeta "Días y horas no disponibles": elige la fecha y marca "Todo el día" o "Solo unas horas" (desde / hasta) y pulsa "Marcar no disponible".
+- Esas horas dejan de ofrecerse a las clientas (también las que harían que un turno se cruce con ellas).
+- Las citas ya agendadas en ese horario NO se cancelan: el panel te avisa para que decidas tú.
+- Para volver a abrir el horario, pulsa la × junto al bloqueo.
+- No requiere cambiar las reglas de Firestore.

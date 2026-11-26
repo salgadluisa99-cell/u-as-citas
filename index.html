@@ -218,6 +218,7 @@ function _loadFb() {
   })());
 }
 const _ls = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
+const _lsB = () => { try { return JSON.parse(localStorage.getItem("belleNailsBloqueos")) || []; } catch (e) { return []; } };
 const _save = l => localStorage.setItem(LS_KEY, JSON.stringify(l));
 const _slotId = (c, t) => c.date + "_" + (t || c.time);
 /* Una cita ocupa su hora si no está cancelada, o si fue cancelada manteniendo la hora bloqueada (liberada === false) */
@@ -243,7 +244,7 @@ const Datos = {
       const r = await F.getDocs(F.query(F.collection(db, "ocupados"), F.where("date", "==", date)));
       return r.docs.map(d => d.data().time);
     }
-    return _ls().filter(c => c.date === date && _activa(c)).flatMap(_bloques);
+    return _ls().filter(c => c.date === date && _activa(c)).flatMap(_bloques).concat(_lsB().filter(b => b.date === date).map(b => b.time));
   },
 
   /* Crea la cita y reserva todo su turno; lanza Error("OCUPADO") si alguna franja ya la tomó otra clienta */
@@ -258,7 +259,7 @@ const Datos = {
       return ref.id;
     }
     const l = _ls(), mias = _bloques(c);
-    if (l.some(x => x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t)))) throw new Error("OCUPADO");
+    if (l.some(x => x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t))) || _lsB().some(b => b.date === c.date && mias.includes(b.time))) throw new Error("OCUPADO");
     c.id = "c" + c.creada + Math.random().toString(36).slice(2, 6);
     l.push(c); _save(l); return c.id;
   },
@@ -299,7 +300,7 @@ const Datos = {
       return;
     }
     const mias = _bloques(c);
-    if (_ls().some(x => x.id !== c.id && x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t)))) throw new Error("OCUPADO");
+    if (_ls().some(x => x.id !== c.id && x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t))) || _lsB().some(b => b.date === c.date && mias.includes(b.time))) throw new Error("OCUPADO");
   },
 
   /* Libera el turno de una cita (al cancelarla o eliminarla) sin tocar el de otra clienta */

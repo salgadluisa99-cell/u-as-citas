@@ -40,6 +40,15 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 .lb{position:fixed;inset:0;background:rgba(20,8,14,.88);display:none;place-items:center;z-index:20;padding:20px}.lb.on{display:grid}.lb img{max-width:100%;max-height:92vh;border-radius:14px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 22px;border-radius:24px;font-size:.88rem;opacity:0;pointer-events:none;transition:.3s;z-index:30;max-width:90%;text-align:center}.toast.on{opacity:1}
 .warn{background:#fff0d6;color:#7a5410;border:1px solid #f2d79d;border-radius:16px;padding:12px 16px;margin-bottom:18px;font-size:.88rem}
+.blk{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:18px 20px;margin-bottom:24px}
+.blk h2{font-size:1.5rem;line-height:1.1}.blk p.s{color:var(--mute);font-size:.88rem;margin:4px 0 12px}
+.blk .f{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.blk label{display:flex;flex-direction:column;font-size:.74rem;color:var(--mute);gap:3px}
+.blk input,.blk select{font:400 .9rem Jost;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);min-width:130px}
+.blk .go{background:var(--ink);color:#fff;border:0;border-radius:22px;padding:11px 20px;cursor:pointer;font:500 .85rem Jost}
+.bl{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{display:flex;align-items:center;gap:8px;background:#fbe0e3;color:var(--bad);border-radius:18px;padding:6px 8px 6px 14px;font-size:.84rem}
+.chip button{border:0;background:rgba(196,65,79,.18);color:var(--bad);border-radius:50%;width:22px;height:22px;cursor:pointer;line-height:1}
 .back{display:inline-block;margin-top:26px;color:var(--rose);text-decoration:none}
 </style>
 </head>
@@ -50,6 +59,18 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 <div class="warn" id="warn" style="display:none">⚠️ <b>Modo prueba:</b> las citas solo se guardan en este navegador. Para ver las citas de tus clientas desde cualquier dispositivo, activa Firebase (mira LEEME.md).</div>
 <p class="sub">Confirma o cancela y avísale a la clienta por WhatsApp con un toque.</p>
 <section class="stats"><div class="st"><span>Total</span><b id="sT">0</b></div><div class="st"><span>Pendientes</span><b id="sP">0</b></div><div class="st"><span>De hoy</span><b id="sH">0</b></div><div class="st"><span>Próximas</span><b id="sF">0</b></div></section>
+<section class="blk" id="blk">
+<h2>Días y horas no disponibles</h2>
+<p class="s">Bloquea un día completo o solo unas horas (vacaciones, citas médicas, imprevistos). Esas horas no se le ofrecen a las clientas. Las citas que ya estén agendadas no se cancelan.</p>
+<div class="f">
+<label>Fecha<input type="date" id="bDate"></label>
+<label>Qué bloquear<select id="bTipo"><option value="dia">Todo el día</option><option value="horas">Solo unas horas</option></select></label>
+<label class="bh" style="display:none">Desde<select id="bDesde"></select></label>
+<label class="bh" style="display:none">Hasta<select id="bHasta"></select></label>
+<button class="go" id="bGo">Marcar no disponible</button>
+</div>
+<div class="bl" id="bList"></div>
+</section>
 <div class="bar"><div class="tabs" id="tabs"></div><button class="clear" id="clear">Eliminar todas</button></div>
 <div class="grid" id="grid"></div>
 <a class="back" href="index.html">← Volver a LuStyle</a>
@@ -92,6 +113,7 @@ function _loadFb() {
   })());
 }
 const _ls = () => { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch (e) { return []; } };
+const _lsB = () => { try { return JSON.parse(localStorage.getItem("belleNailsBloqueos")) || []; } catch (e) { return []; } };
 const _save = l => localStorage.setItem(LS_KEY, JSON.stringify(l));
 const _slotId = (c, t) => c.date + "_" + (t || c.time);
 /* Una cita ocupa su hora si no está cancelada, o si fue cancelada manteniendo la hora bloqueada (liberada === false) */
@@ -117,7 +139,7 @@ const Datos = {
       const r = await F.getDocs(F.query(F.collection(db, "ocupados"), F.where("date", "==", date)));
       return r.docs.map(d => d.data().time);
     }
-    return _ls().filter(c => c.date === date && _activa(c)).flatMap(_bloques);
+    return _ls().filter(c => c.date === date && _activa(c)).flatMap(_bloques).concat(_lsB().filter(b => b.date === date).map(b => b.time));
   },
 
   /* Crea la cita y reserva todo su turno; lanza Error("OCUPADO") si alguna franja ya la tomó otra clienta */
@@ -132,9 +154,47 @@ const Datos = {
       return ref.id;
     }
     const l = _ls(), mias = _bloques(c);
-    if (l.some(x => x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t)))) throw new Error("OCUPADO");
+    if (l.some(x => x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t))) || _lsB().some(b => b.date === c.date && mias.includes(b.time))) throw new Error("OCUPADO");
     c.id = "c" + c.creada + Math.random().toString(36).slice(2, 6);
     l.push(c); _save(l); return c.id;
+  },
+
+
+  /* ===== Días y horas no disponibles (solo la administradora) ===== */
+  /* Lista de bloqueos [{date,time}] */
+  async bloqueos() {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      const r = await F.getDocs(F.query(F.collection(db, "ocupados"), F.where("cita", "==", "bloqueo")));
+      return r.docs.map(d => ({ date: d.data().date, time: d.data().time }));
+    }
+    return _lsB();
+  },
+  /* Bloquea las franjas indicadas de un día; no toca las que ya tiene una cita */
+  async bloquear(date, times) {
+    if (this.nube) {
+      const { F, db } = await _loadFb(); let n = 0;
+      for (const t of times) {
+        const ref = F.doc(db, "ocupados", date + "_" + t), sn = await F.getDoc(ref);
+        if (sn.exists()) continue;
+        await F.setDoc(ref, { date, time: t, cita: "bloqueo" }); n++;
+      }
+      return n;
+    }
+    const l = _lsB(); let n = 0;
+    times.forEach(t => { if (!l.some(b => b.date === date && b.time === t)) { l.push({ date, time: t }); n++; } });
+    localStorage.setItem("belleNailsBloqueos", JSON.stringify(l)); return n;
+  },
+  async desbloquear(date, times) {
+    if (this.nube) {
+      const { F, db } = await _loadFb();
+      for (const t of times) {
+        const ref = F.doc(db, "ocupados", date + "_" + t), sn = await F.getDoc(ref);
+        if (sn.exists() && sn.data().cita === "bloqueo") await F.deleteDoc(ref);
+      }
+      return;
+    }
+    localStorage.setItem("belleNailsBloqueos", JSON.stringify(_lsB().filter(b => !(b.date === date && times.includes(b.time)))));
   },
 
   async listar() {
@@ -173,7 +233,7 @@ const Datos = {
       return;
     }
     const mias = _bloques(c);
-    if (_ls().some(x => x.id !== c.id && x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t)))) throw new Error("OCUPADO");
+    if (_ls().some(x => x.id !== c.id && x.date === c.date && _activa(x) && _bloques(x).some(t => mias.includes(t))) || _lsB().some(b => b.date === c.date && mias.includes(b.time))) throw new Error("OCUPADO");
   },
 
   /* Libera el turno de una cita (al cancelarla o eliminarla) sin tocar el de otra clienta */
@@ -240,10 +300,48 @@ const toast=t=>{const e=document.getElementById("tst");e.textContent=t;e.classLi
 let CITAS=[],FIL="todas";
 const FILTROS=[["todas","Todas"],["pendiente","Pendientes"],["confirmada","Confirmadas"],["cancelada","Canceladas"]];
 
+
+/* ---- Bloqueos ---- */
+let BLOQ=[];
+const _ultimo=_min(HORA_ULTIMO_TURNO),_primero=_min(HORA_INICIO);
+const _ini=()=>{bDate.min=new Date().toLocaleDateString("en-CA");
+  bDesde.innerHTML=SLOTS.map(t=>`<option value="${t}">${fmtH(t)}</option>`).join("");
+  const fin=[];for(let t=_primero+PASO_MIN;t<=_ultimo+PASO_MIN;t+=PASO_MIN)fin.push(_hhmm(t));
+  bHasta.innerHTML=fin.map(t=>`<option value="${t}">${fmtH(t)}</option>`).join("");bHasta.value=fin[fin.length-1]};
+bTipo.onchange=()=>document.querySelectorAll(".bh").forEach(e=>e.style.display=bTipo.value==="horas"?"flex":"none");
+async function cargarBloqueos(){try{BLOQ=await Datos.bloqueos()}catch(e){console.error(e);BLOQ=[]}pintarBloqueos()}
+function pintarBloqueos(){
+  const hoy=new Date().toLocaleDateString("en-CA");
+  const por={};BLOQ.filter(b=>b.date>=hoy).forEach(b=>(por[b.date]=por[b.date]||[]).push(b.time));
+  const chips=[];
+  Object.keys(por).sort().forEach(d=>{
+    const ts=por[d].sort();let ini=ts[0],prev=ts[0];const rangos=[];
+    for(let i=1;i<=ts.length;i++){const t=ts[i];if(t!==undefined&&_min(t)-_min(prev)===PASO_MIN){prev=t;continue}rangos.push([ini,prev]);ini=t;prev=t}
+    rangos.forEach(([a,z])=>{const todo=_min(a)<=_primero&&_min(z)>=_ultimo;
+      const txt=todo?"Todo el día":`${fmtH(a)} – ${fmtH(_hhmm(_min(z)+PASO_MIN))}`;
+      chips.push(`<span class="chip">📅 ${fecha(d)} · ${txt}<button title="Quitar" data-qd="${d}" data-qa="${a}" data-qz="${z}">×</button></span>`)});
+  });
+  bList.innerHTML=chips.length?chips.join(""):`<span class="row">No hay días ni horas bloqueados.</span>`;
+}
+const _rango=(a,z)=>{const r=[];for(let t=_min(a);t<=_min(z);t+=PASO_MIN)r.push(_hhmm(t));return r};
+bGo.onclick=async()=>{
+  const d=bDate.value;if(!d)return toast("Elige la fecha que quieres bloquear.");
+  let times;
+  if(bTipo.value==="dia")times=_rango(HORA_INICIO,HORA_ULTIMO_TURNO);
+  else{if(_min(bHasta.value)<=_min(bDesde.value))return toast("La hora final debe ser después de la hora inicial.");
+    times=_rango(bDesde.value,_hhmm(_min(bHasta.value)-PASO_MIN))}
+  const afectadas=CITAS.filter(c=>c.date===d&&_activa(c)&&_bloques(c).some(t=>times.includes(t)));
+  if(afectadas.length&&!confirm(`Ya hay ${afectadas.length} cita(s) agendada(s) en ese horario (${afectadas.map(c=>c.name).join(", ")}). Seguirán agendadas; tendrás que cancelarlas tú si hace falta.\n\n¿Bloquear de todos modos?`))return;
+  try{await Datos.bloquear(d,times);toast(bTipo.value==="dia"?"Día marcado como no disponible.":"Horas marcadas como no disponibles.");await cargarBloqueos()}
+  catch(e){console.error(e);toast("No se pudo bloquear. Revisa tu conexión y que hayas iniciado sesión.")}
+};
+document.addEventListener("click",async e=>{const b=e.target.closest&&e.target.closest("[data-qd]");if(!b)return;
+  try{await Datos.desbloquear(b.dataset.qd,_rango(b.dataset.qa,b.dataset.qz));toast("Horario disponible otra vez.");await cargarBloqueos()}catch(err){console.error(err);toast("No se pudo quitar el bloqueo.")}});
+
 async function init(){
   if(!await Datos.haySesion()){location.href="login.html";return}
   if(!Datos.nube)warn.style.display="block";
-  await cargar();
+  _ini();await cargar();await cargarBloqueos();
 }
 async function cargar(){
   try{CITAS=await Datos.listar()}catch(e){toast("No pude cargar las citas: "+(e&&(e.code||e.message)||"error desconocido"));console.error(e);CITAS=[]}
@@ -272,7 +370,16 @@ function pintar(){
    <button class="b del" data-a="del" data-id="${c.id}">Eliminar</button>
   </div></div></article>`).join("");
 }
-function irWA(w,c,texto){const u=`https://wa.me/${telWhatsApp(c.phone)}?text=${encodeURIComponent(texto)}`;if(w)w.location.href=u;else window.open(u,"_blank")}
+const ES_ANDROID=/Android/i.test(navigator.userAgent),ES_IOS=/iPhone|iPad|iPod/i.test(navigator.userAgent),ES_MOVIL=ES_ANDROID||ES_IOS;
+/* En el celular se abre la app de WhatsApp directamente (no la página web que pide instalarla); en computador se abre WhatsApp Web */
+function irWA(w,c,texto){
+  const tel=telWhatsApp(c.phone),q=encodeURIComponent(texto),web=`https://api.whatsapp.com/send?phone=${tel}&text=${q}`;
+  if(ES_MOVIL){
+    if(w)try{w.close()}catch(_){}
+    if(ES_ANDROID)location.href=`intent://send?phone=${tel}&text=${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`;
+    else{location.href=`whatsapp://send?phone=${tel}&text=${q}`;setTimeout(()=>{if(!document.hidden)location.href=web},2500)}
+    return}
+  const u=`https://wa.me/${tel}?text=${q}`;if(w)w.location.href=u;else window.open(u,"_blank")}
 
 document.addEventListener("click",async e=>{
   const t=e.target;
@@ -282,14 +389,14 @@ document.addEventListener("click",async e=>{
   const a=t.dataset.a,id=t.dataset.id;if(!a)return;
   const c=CITAS.find(x=>x.id===id);if(!c)return;
   if(a==="ok"){
-    const w=window.open("about:blank","_blank");
+    const w=ES_MOVIL?null:window.open("about:blank","_blank");
     try{if(c.estado==="cancelada")await Datos.ocupar(c);await Datos.actualizar(id,{estado:"confirmada",motivo:""})}
     catch(err){if(w)w.close();toast(err&&err.message==="OCUPADO"?"Esa hora ya fue tomada por otra clienta; no se puede reactivar.":"No se pudo confirmar. Intenta de nuevo.");await cargar();return}
     irWA(w,c,`Hola ${c.name} 💖, te escribe LuStyle. Tu cita de ${c.service} quedó *confirmada* para el ${fecha(c.date)} a las ${fmtH(c.time)}. ¡Te esperamos! ✨`);toast("Cita confirmada. Envía el mensaje en WhatsApp.");
   }
   if(a==="no"){
     const m=prompt("Motivo de la cancelación (opcional):");if(m===null)return;
-    const w=window.open("about:blank","_blank");
+    const w=ES_MOVIL?null:window.open("about:blank","_blank");
     const libera=confirm("¿Quieres que esa hora vuelva a quedar disponible para otras clientas?\n\nAceptar = liberar la hora\nCancelar = mantenerla bloqueada");
     try{await Datos.actualizar(id,{estado:"cancelada",motivo:m.trim(),liberada:libera});if(libera)await Datos.liberar(c)}catch(err){if(w)w.close();toast("No se pudo cancelar. Intenta de nuevo.");return}
     irWA(w,c,`Hola ${c.name}, te escribe LuStyle. Lamentablemente tuvimos que *cancelar* tu cita de ${c.service} del ${fecha(c.date)} a las ${fmtH(c.time)}${m.trim()?`. Motivo: ${m.trim()}`:""}. Escríbenos y la reprogramamos con gusto 💅`);toast(libera?"Cita cancelada y hora liberada. Envía el mensaje en WhatsApp.":"Cita cancelada; la hora sigue bloqueada. Envía el mensaje en WhatsApp.");
