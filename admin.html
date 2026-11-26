@@ -49,6 +49,10 @@ h1{font-size:clamp(2.2rem,6vw,3.2rem);line-height:1.1;margin:4px 0}
 .bl{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .chip{display:flex;align-items:center;gap:8px;background:#fbe0e3;color:var(--bad);border-radius:18px;padding:6px 8px 6px 14px;font-size:.84rem}
 .chip button{border:0;background:rgba(196,65,79,.18);color:var(--bad);border-radius:50%;width:22px;height:22px;cursor:pointer;line-height:1}
+.was{position:fixed;inset:0;background:rgba(20,8,14,.7);display:grid;place-items:center;z-index:40;padding:20px}
+.wab{background:#fff;border-radius:24px;padding:24px 22px;max-width:340px;width:100%;text-align:center;display:flex;flex-direction:column;gap:10px}
+.wab p{color:var(--mute)}.wab .go{background:#25d366;color:#07300f;border:0;border-radius:24px;padding:14px 18px;font:500 .95rem Jost}
+.wab .cl{border:0;background:transparent;color:var(--mute);text-decoration:underline;cursor:pointer;font:400 .85rem Jost}
 .back{display:inline-block;margin-top:26px;color:var(--rose);text-decoration:none}
 </style>
 </head>
@@ -372,13 +376,23 @@ function pintar(){
 }
 const ES_ANDROID=/Android/i.test(navigator.userAgent),ES_IOS=/iPhone|iPad|iPod/i.test(navigator.userAgent),ES_MOVIL=ES_ANDROID||ES_IOS;
 /* En el celular se abre la app de WhatsApp directamente (no la página web que pide instalarla); en computador se abre WhatsApp Web */
+/* En el celular el sistema solo deja abrir WhatsApp cuando la persona toca un botón: por eso se muestra este aviso con el botón */
+function mostrarWA(href,nombre){
+  let d=document.getElementById("waS");if(d)d.remove();
+  d=document.createElement("div");d.id="waS";d.className="was";
+  d.innerHTML='<div class="wab"><div style="font-size:2rem">✅</div><h2>Listo</h2><p></p><a class="go" style="display:block;text-decoration:none;text-align:center">Abrir WhatsApp y enviar mensaje</a><button type="button" class="cl">Cerrar</button></div>';
+  d.querySelector("p").textContent="Ahora avísale a "+nombre+" por WhatsApp.";
+  d.querySelector("a").href=href;
+  d.querySelector("a").addEventListener("click",()=>setTimeout(()=>d.remove(),600));
+  d.querySelector(".cl").onclick=()=>d.remove();
+  document.body.appendChild(d);
+}
 function irWA(w,c,texto){
   const tel=telWhatsApp(c.phone),q=encodeURIComponent(texto),web=`https://api.whatsapp.com/send?phone=${tel}&text=${q}`;
   if(ES_MOVIL){
     if(w)try{w.close()}catch(_){}
-    if(ES_ANDROID)location.href=`intent://send?phone=${tel}&text=${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`;
-    else{location.href=`whatsapp://send?phone=${tel}&text=${q}`;setTimeout(()=>{if(!document.hidden)location.href=web},2500)}
-    return}
+    const app=ES_ANDROID?`intent://send?phone=${tel}&text=${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`:`whatsapp://send?phone=${tel}&text=${q}`;
+    mostrarWA(app,c.name);return}
   const u=`https://wa.me/${tel}?text=${q}`;if(w)w.location.href=u;else window.open(u,"_blank")}
 
 document.addEventListener("click",async e=>{
